@@ -1,5 +1,6 @@
 # src/downloader.py
 from selenium import webdriver
+from selenium.common import TimeoutException, WebDriverException
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -13,6 +14,7 @@ import logging
 import time
 import glob
 import queue
+import certifi
 from urllib.parse import urlparse
 
 # Configuration du logging
@@ -59,131 +61,154 @@ def simple_dl(row):
     logger.info(f'Destination : {fichier_destination}')
 
     try:
+        os.makedirs(DEST_PATH, exist_ok=True)
         response = requests.get(final_url)
         response.raise_for_status()
+
+        # Déterminer l'extension à partir de Content-Type
+        content_type = response.headers.get('Content-Type', '').lower()
+        if 'application/pdf' in content_type:
+            fichier_destination += '.pdf'
+        elif 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' in content_type:
+            fichier_destination += '.xlsx'
+        elif 'text/csv' in content_type:
+            fichier_destination += '.csv'
+        # Ajoutez d'autres types MIME si nécessaire
+
         with open(fichier_destination, "wb") as fichier:
             fichier.write(response.content)
+        logger.info(f"Téléchargement réussi : {fichier_destination}")
         return True, None
     except requests.exceptions.RequestException as e:
         logger.error(f"Erreur lors du téléchargement : {e}")
         return False, str(e)
+    except Exception as e:
+        logger.error(f"Erreur inattendue : {type(e).__name__} - {str(e)}")
+        return False, str(e)
 
 # Téléchargement via Selenium
+# src/downloader.py
+# src/downloader.py
+# src/downloader.py
+# src/downloader.py
 def driver_dl(row, driver):
-    """
-    Télécharge un fichier en utilisant Selenium pour interagir avec une page web.
-
-    Args:
-        row: Ligne du DataFrame contenant les informations de téléchargement.
-        driver: Instance du driver Selenium.
-
-    Returns:
-        tuple: (succès (bool), erreur (str ou None)).
-    """
     url = row[columns[2]]
     xpath = row[columns[3]]
 
     try:
+        # Charger la page initiale
         driver.get(url)
+        time.sleep(2)  # Attendre le chargement initial
         logger.info(f"Page ouverte : {url}")
         logger.info(f"Utilisation du XPath : {xpath}")
-        # Note : De nombreux XPath dans le fichier Excel utilisent des ID dynamiques (ex: address-...).
-        # Pour éviter les échecs, il est recommandé de les remplacer par des XPath plus robustes, par exemple :
-        # - //a[@class="link-CSV"] (pour les éléments avec une classe link-CSV)
-        # - //a[contains(@title, "CSV")] (pour les éléments avec un title indiquant un CSV)
-        # - //a[contains(@href, "download")] (pour les liens de téléchargement génériques)
-        # Voir la liste des XPath reformulés dans la documentation.
 
-        # Attendre que l'élément soit cliquable et le cliquer
+        # Attendre que l'élément soit cliquable
         element = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, xpath))
         )
         if not element:
-            raise Exception("Élément non trouvé pour le clic")
+            logger.error(f"Élément avec le XPath {xpath} non trouvé.")
+            return False, "Élément non trouvé pour le clic"
 
-        # Récupérer les métadonnées de l'élément pour déterminer le type de fichier
+        # Récupérer l'URL cible de l'élément avant de cliquer (si disponible)
         href = element.get_attribute("href")
-        title = element.get_attribute("title")
-        class_name = element.get_attribute("class")
-        logger.info(f"Attribut href : {href}")
-        logger.info(f"Attribut title : {title}")
-        logger.info(f"Attribut class : {class_name}")
+        logger.info(f"Attribut href de l'élément : {href}")
 
-        # Vérifier si l'élément indique un fichier CSV
-        is_csv = (
-            (title and "CSV" in title.upper()) or
-            (class_name and "CSV" in class_name.upper()) or
-            (href and "csv" in href.lower())
-        )
-
-        # Extraire un nom de fichier potentiel à partir de l'URL (href)
-        expected_filename = None
-        if href:
-            parsed_url = urlparse(href)
-            expected_filename = os.path.basename(parsed_url.path)
-            logger.info(f"Nom de fichier attendu à partir de href : {expected_filename}")
-        else:
-            logger.warning("Aucun attribut href trouvé, utilisation d'un nom de fichier par défaut")
-
+        # Télécharger le fichier via clic
         before_files = set(glob.glob(os.path.join(TEMP_DOWNLOAD_DIR, "*")))
         element.click()
 
+        # Vérifier si un fichier est téléchargé dans TEMP_DOWNLOAD_DIR
         timeout = 30
         start_time = time.time()
         downloaded_file = None
+        valid_extensions = {".xlsx", ".xls", ".csv", ".pdf", ".docx"}
+
         while time.time() - start_time < timeout:
             after_files = set(glob.glob(os.path.join(TEMP_DOWNLOAD_DIR, "*")))
             new_files = after_files - before_files
-            if new_files and not any("crdownload" in f for f in new_files):
-                downloaded_file = new_files.pop()
+            if new_files:
+                for file in new_files:
+                    _, ext = os.path.splitext(file)
+                    if ext.lower() in valid_extensions and "crdownload" not in file:
+                        downloaded_file = file
+                        break
+            if downloaded_file:
                 break
             time.sleep(1)
 
-        if not downloaded_file:
-            raise Exception("Le téléchargement n'a pas démarré ou a échoué")
-
-        # Déterminer l'extension du fichier téléchargé
-        downloaded_filename = os.path.basename(downloaded_file)
-        _, downloaded_ext = os.path.splitext(downloaded_filename)
-        logger.info(f"Fichier téléchargé : {downloaded_filename} (extension : {downloaded_ext})")
-
-        # Déterminer l'extension finale
-        if expected_filename:
-            _, expected_ext = os.path.splitext(expected_filename)
-            if expected_ext:  # Si l'URL contient une extension claire (ex: .xlsx, .pdf)
-                final_ext = expected_ext.lower()
-                logger.info(f"Extension extraite de l'URL : {final_ext}")
-            elif is_csv:
-                logger.info("Le fichier est identifié comme un CSV, forçage de l'extension .csv")
-                final_ext = ".csv"
-            else:
-                logger.warning("Aucune extension claire dans l'URL, forçage à .csv")
-                final_ext = ".csv"
+        if downloaded_file:
+            # Cas classique : fichier téléchargé dans TEMP_DOWNLOAD_DIR
+            downloaded_filename = os.path.basename(downloaded_file)
+            logger.info(f"Fichier téléchargé : {downloaded_filename}")
+            prefix = sanitize_filename(row[columns[0]])
+            final_filename = f"{prefix} - {downloaded_filename}"
+            destination_path = os.path.join(DEST_PATH, final_filename)
+            os.makedirs(DEST_PATH, exist_ok=True)
+            os.rename(downloaded_file, destination_path)
+            logger.info(f"Fichier téléchargé et sauvegardé : {destination_path}")
+            return True, None
         else:
-            # Si pas de href ou pas d'extension claire, vérifier si c'est un CSV
-            if is_csv:
-                logger.info("Le fichier est identifié comme un CSV, forçage de l'extension .csv")
-                final_ext = ".csv"
+            # Si aucun fichier n'est téléchargé, utiliser l'URL cible avec requests
+            logger.info("Aucun fichier détecté dans TEMP_DOWNLOAD_DIR, tentative via URL cible...")
+            time.sleep(2)  # Attendre une éventuelle redirection
+            current_url = driver.current_url
+            logger.info(f"URL après clic : {current_url}")
+
+            # Choisir l'URL à utiliser : href si disponible, sinon current_url
+            target_url = href if href else current_url
+
+            if not target_url:
+                logger.error(f"Aucune URL cible valide trouvée pour {url}")
+                return False, "Aucune URL cible valide trouvée"
+
+            # Télécharger avec requests
+            response = requests.get(target_url)
+            response.raise_for_status()
+
+            # Déterminer le nom et l'extension du fichier
+            content_type = response.headers.get('Content-Type', '').lower()
+            downloaded_filename = os.path.basename(urlparse(target_url).path)
+            if not downloaded_filename:  # Si aucun nom dans l'URL
+                downloaded_filename = "document"
+
+            # Ajouter l'extension correcte basée sur Content-Type
+            if 'application/pdf' in content_type or downloaded_filename.lower().endswith('.pdf'):
+                if not downloaded_filename.lower().endswith('.pdf'):
+                    downloaded_filename += '.pdf'
+            elif 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' in content_type or downloaded_filename.lower().endswith('.xlsx'):
+                if not downloaded_filename.lower().endswith('.xlsx'):
+                    downloaded_filename += '.xlsx'
+            elif 'text/csv' in content_type or downloaded_filename.lower().endswith('.csv'):
+                if not downloaded_filename.lower().endswith('.csv'):
+                    downloaded_filename += '.csv'
+            elif 'application/vnd.ms-excel' in content_type or downloaded_filename.lower().endswith('.xls'):
+                if not downloaded_filename.lower().endswith('.xls'):
+                    downloaded_filename += '.xls'
             else:
-                logger.warning("Impossible de déterminer le type de fichier, forçage à .csv")
-                final_ext = ".csv"
+                logger.warning(f"Type de contenu inconnu : {content_type}, extension par défaut .pdf")
+                downloaded_filename += '.pdf'
 
-        # Construire le nom de fichier final
-        prefix = sanitize_filename(row[columns[0]])
-        if expected_filename and expected_ext:
-            base_filename = os.path.splitext(expected_filename)[0]
-        else:
-            base_filename = os.path.splitext(downloaded_filename)[0]
+            prefix = sanitize_filename(row[columns[0]])
+            final_filename = f"{prefix} - {downloaded_filename}"
+            destination_path = os.path.join(DEST_PATH, final_filename)
 
-        final_filename = f"{prefix} - {base_filename}{final_ext}"
-        destination_path = os.path.join(DEST_PATH, final_filename)
-        os.rename(downloaded_file, destination_path)
-        logger.info(f"Fichier téléchargé et sauvegardé : {destination_path}")
+            # Sauvegarder le fichier
+            os.makedirs(DEST_PATH, exist_ok=True)
+            with open(destination_path, "wb") as fichier:
+                fichier.write(response.content)
+            logger.info(f"Fichier téléchargé et sauvegardé : {destination_path}")
+            return True, None
 
-        return True, None
+    except TimeoutException:
+        logger.error(f"Timeout : L'élément avec le XPath {xpath} n'a pas été trouvé dans les 10 secondes.")
+        return False, "Timeout : Élément non trouvé"
+    except WebDriverException as e:
+        logger.error(f"Erreur WebDriver : {str(e)}")
+        return False, f"Erreur WebDriver : {str(e)}"
     except Exception as e:
-        logger.error(f"Erreur : {type(e).__name__} - {str(e)}")
-        return False, str(e)
+        logger.error(f"Erreur inattendue : {type(e).__name__} - {str(e)}")
+        return False, f"Erreur inattendue : {str(e)}"
 
 # Fonction pour obtenir la liste des sources
 def get_sources():

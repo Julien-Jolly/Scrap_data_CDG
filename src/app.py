@@ -59,14 +59,15 @@ def main():
             # Créer un conteneur pour le tableau des statuts
             status_container = st.empty()
             # Afficher le tableau initial
-            status_container.dataframe(status_df, use_container_width=True, height=300)
+            status_container.dataframe(status_df, hide_index=True, use_container_width=True, height=300)
 
         # Colonne 2 (droite) : Espace pour le rapport final
         with col2:
+            st.write("### Rapport de Téléchargement :")
             # Créer un conteneur pour le rapport final
             report_container = st.empty()
             # Initialement, afficher un message d'attente
-            report_container.write("### Rapport final\nEn attente de la fin des téléchargements...")
+            #report_container.write("### Rapport final\nEn attente de la fin des téléchargements...")
 
             # Bouton pour lancer le téléchargement
             if st.button("Lancer le téléchargement"):
@@ -110,7 +111,7 @@ def main():
                             st.write("**Liste des fichiers en erreur :**")
                             # Créer un DataFrame pour les erreurs
                             errors_df = pd.DataFrame(errors, columns=["Source", "Motif"])
-                            st.dataframe(errors_df, use_container_width=True)
+                            st.dataframe(errors_df,hide_index=True,  use_container_width=True)
                         else:
                             st.success("Tous les fichiers ont été téléchargés avec succès !")
 
@@ -132,6 +133,7 @@ def main():
         # Afficher le tableau éditable
         edited_df = st.data_editor(
             edit_df,
+            hide_index=True,
             column_config=disabled_columns,
             use_container_width=True,
             height=400,
