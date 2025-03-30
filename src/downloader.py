@@ -86,19 +86,16 @@ def simple_dl(row):
         logger.error(f"Erreur inattendue : {type(e).__name__} - {str(e)}")
         return False, str(e)
 
-# Téléchargement via Selenium
-# src/downloader.py
-# src/downloader.py
-# src/downloader.py
-# src/downloader.py
+
 def driver_dl(row, driver):
+    #ok
     url = row[columns[2]]
     xpath = row[columns[3]]
 
     try:
         # Charger la page initiale
         driver.get(url)
-        time.sleep(2)  # Attendre le chargement initial
+        #time.sleep(2)  # Attendre le chargement initial
         logger.info(f"Page ouverte : {url}")
         logger.info(f"Utilisation du XPath : {xpath}")
 
@@ -119,7 +116,7 @@ def driver_dl(row, driver):
         element.click()
 
         # Vérifier si un fichier est téléchargé dans TEMP_DOWNLOAD_DIR
-        timeout = 30
+        timeout = 5
         start_time = time.time()
         downloaded_file = None
         valid_extensions = {".xlsx", ".xls", ".csv", ".pdf", ".docx"}

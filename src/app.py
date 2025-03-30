@@ -67,7 +67,7 @@ def main():
             # Créer un conteneur pour le rapport final
             report_container = st.empty()
             # Initialement, afficher un message d'attente
-            #report_container.write("### Rapport final\nEn attente de la fin des téléchargements...")
+            report_container.write("### Rapport final\nEn attente de la fin des téléchargements...")
 
             # Bouton pour lancer le téléchargement
             if st.button("Lancer le téléchargement"):
@@ -92,7 +92,7 @@ def main():
                                     break
                                 source, status = update
                                 status_df.loc[status_df["Source"] == source, "Statut"] = status
-                                status_container.dataframe(status_df, use_container_width=True, height=300)
+                                status_container.dataframe(status_df, hide_index=True, use_container_width=True, height=300)
                             except queue.Empty:
                                 # Si la file est vide, vérifier si le thread est terminé
                                 if future.done():
