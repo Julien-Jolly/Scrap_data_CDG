@@ -5,7 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9c4f2f80-f517-46c4-8bc8-3b88324d6a3c" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/README" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/config.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/download_ui.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/extract_ui.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/manage_sources_ui.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source126 - Taux de chômage selon les tranches d'âge au milieu urbain - Trimestriel (10).xlsx" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source127 - PIB en volume - Tableau (6).xlsx" beforeDir="false" />
@@ -15,18 +19,20 @@
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source131 - IMEE%20Fin%20F%C3%A9vrier%202025.pdf" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source132 - IMEE%20Fin%20F%C3%A9vrier%202025.pdf" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source133 - download.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source2 - STAT_OPCVM_HEBDO_AMMC 14.03.2025 (14).xlsx" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source24 - Operations-principales_01_04_2025-00_04.csv" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source25 - Facilites-permanentes_01_04_2025-00_04.csv" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source26 - Operations-de-long-terme_01_04_2025-00_04.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source28 - Indice-monia-moroccan-overnight-index-average_31_03_2025-06_01.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source29 - Constitution-de-la-reserve-obligatoire_31_03_2025-03_01.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source30 - Taux-de-reference-des-bons-du-tresor_01_04_2025-00_04.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source28 - Indice-monia-moroccan-overnight-index-average_31_03_2025-20_01.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source29 - Constitution-de-la-reserve-obligatoire_01_04_2025-04_01.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source2_1 - STAT_OPCVM_HEBDO_AMMC 14.03.2025 (15).xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source2_2 - STAT_OPCVM_HEBDO_AMMC 14.03.2025 (15).xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source2_3 - STAT_OPCVM_HEBDO_AMMC 14.03.2025 (15).xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source30 - Taux-de-reference-des-bons-du-tresor_01_04_2025-14_39.csv" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source31 - Encours-des-interventions_31_03_2025-22_01.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source32 - Resultats-des-emissions-de-bons-du-tresor_31_03_2025-16_01.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source32 - Resultats-des-emissions-de-bons-du-tresor_01_04_2025-07_01.csv" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source34 - Bande-de-fluctuation_31_03_2025-21_51.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source35 - Cours-de-reference_31_03_2025-10_33.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source36 - Marche-monetaire-interbancaire_31_03_2025-07_01.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source35 - Cours-de-reference_01_04_2025-10_34.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source36 - Marche-monetaire-interbancaire_01_04_2025-08_01.csv" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source37 - 30-Compte%20de%20patrimoine%20des%20caisses%20de%20retraite.xlsx.xlsx" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source38 - 41-Position%20des%20ASF%20vis-vis%20des%20m%C3%A9nages.xlsx.xlsx" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source39 - 40-Position%20des%20ASF%20vis-vis%20des%20soci%C3%A9t%C3%A9s%20non%20financires.xlsx.xlsx" beforeDir="false" />
@@ -67,14 +73,15 @@
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source74 - 3-CompteDePatrimoineDesbanques.xlsx.xlsx" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source75 - 2-CompteDePatrimoineDeSAutresInstitutionsDeDpts.xlsx.xlsx" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source76 - 1-CompteDePatrimoineDeBAM.xlsx.xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source77 - Taux-debiteurs_01_04_2025-13_35.csv" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source78 - BKAM série IPSB 2022 (12).xlsx" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source79 - BKAM Séries IPAI T4 2024 (9).xlsx" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source80 - BKAM Inflation et inflation sous jacente (8).xlsx" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source81 - 8990852.pdf" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Downloads/04-01/Source82 - 8162931.xlsx" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/download_script.log" beforeDir="false" afterPath="$PROJECT_DIR$/download_script.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/source_settings.json" beforeDir="false" afterPath="$PROJECT_DIR$/source_settings.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/downloader.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/downloader.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/parser.py" afterDir="false" />
     </list>

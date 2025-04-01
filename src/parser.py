@@ -6,14 +6,9 @@ import pdfplumber
 import json
 import re
 import csv
-from datetime import datetime
 
-# Chemin des fichiers téléchargés
-actual_date = datetime.now()
-month = actual_date.strftime("%m")
-day = actual_date.strftime("%d")
-DOWNLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "Downloads", f"{month}-{day}")
-SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "..", "source_settings.json")
+# Importer les constantes depuis config.py
+from src.config import DOWNLOAD_DIR, SETTINGS_FILE
 
 def get_downloaded_files():
     """Retourne une liste des fichiers téléchargés avec leur source."""

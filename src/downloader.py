@@ -6,7 +6,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import requests
-from datetime import datetime
 import pandas as pd
 import os
 import re
@@ -18,7 +17,8 @@ import certifi
 from urllib.parse import urlparse
 import json
 
-# Configuration du logging
+from src.config import SOURCE_FILE, DEST_PATH, TEMP_DOWNLOAD_DIR, CHROMEDRIVER_PATH, year, month, day
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -29,30 +29,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Obtenir la date du jour
-actual_date = datetime.now()
-year = actual_date.strftime("%Y")
-month = actual_date.strftime("%m")
-day = actual_date.strftime("%d")
-
-# Chemins des fichiers
-SOURCE_FILE = "C:/Users/Julien/OneDrive/Documents/CDG Capital Gestion/Matrice KPI_Gestion_V2_03_01 (2) (1).xlsx"
-DEST_PATH = os.path.join(os.path.dirname(__file__), "..", "Downloads", f"{month}-{day}")
 os.makedirs(DEST_PATH, exist_ok=True)
 
-# Dossier temporaire pour les téléchargements
-TEMP_DOWNLOAD_DIR = os.path.join(os.path.expanduser("~"), "Downloads")
-
-# Lecture du fichier source
-df = pd.read_excel(SOURCE_FILE, sheet_name="Source sans doub", dtype=str)
-columns = df.columns.tolist()
-
-# Fonction pour nettoyer les noms de fichiers
 def sanitize_filename(name):
     return re.sub(r'[\\/*?:"<>|]', "", name)
 
-# Téléchargement simple par URL
-def simple_dl(row):
+def simple_dl(row, columns):
     final_url = row[columns[2]].format(year=year, month=month, day=day)
     logger.info(f'URL : {final_url}')
     nom_fichier = os.path.basename(final_url)
@@ -66,7 +48,6 @@ def simple_dl(row):
         response = requests.get(final_url)
         response.raise_for_status()
 
-        # Déterminer l'extension à partir de Content-Type
         content_type = response.headers.get('Content-Type', '').lower()
         if 'application/pdf' in content_type:
             fichier_destination += '.pdf'
@@ -74,7 +55,6 @@ def simple_dl(row):
             fichier_destination += '.xlsx'
         elif 'text/csv' in content_type:
             fichier_destination += '.csv'
-        # Ajoutez d'autres types MIME si nécessaire
 
         with open(fichier_destination, "wb") as fichier:
             fichier.write(response.content)
@@ -87,16 +67,14 @@ def simple_dl(row):
         logger.error(f"Erreur inattendue : {type(e).__name__} - {str(e)}")
         return False, str(e)
 
-def driver_dl(row, driver):
+def driver_dl(row, columns, driver):
     url = row[columns[2]]
     xpath = row[columns[3]]
 
-    # Vérifier que l'URL est valide
     if not url or not isinstance(url, str) or not url.strip():
         logger.error(f"URL invalide pour la source {row[columns[0]]}: {url}")
         return False, "URL invalide"
 
-    # Ajouter un préfixe http:// si l'URL n'en a pas
     if not url.startswith(('http://', 'https://')):
         url = 'https://' + url
         logger.info(f"URL ajustée : {url}")
@@ -106,15 +84,12 @@ def driver_dl(row, driver):
         driver.get(url)
         logger.info(f"Page ouverte avec succès : {url}")
 
-        # Vérifier si la page affiche directement du JSON (cas de Medias24_Stocks)
         content_type = driver.execute_script("return document.contentType;")
         if 'application/json' in content_type.lower() or url.endswith('json'):
-            # Récupérer le contenu JSON directement
             content = driver.find_element(By.TAG_NAME, "body").text
             try:
                 data = json.loads(content)
             except json.JSONDecodeError:
-                # Si le JSON est dans un tag <pre> (souvent le cas pour les API)
                 try:
                     pre_element = driver.find_element(By.TAG_NAME, "pre")
                     content = pre_element.text
@@ -123,7 +98,6 @@ def driver_dl(row, driver):
                     logger.error(f"Le contenu de {url} n’est pas du JSON valide.")
                     return False, "Le contenu n’est pas du JSON valide"
 
-            # Sauvegarder le JSON
             prefix = sanitize_filename(row[columns[0]])
             destination_path = os.path.join(DEST_PATH, f"{prefix} - data.json")
             os.makedirs(DEST_PATH, exist_ok=True)
@@ -132,14 +106,12 @@ def driver_dl(row, driver):
             logger.info(f"Fichier JSON sauvegardé : {destination_path}")
             return True, None
 
-        # Si ce n’est pas du JSON, on suit la logique existante (clic sur un élément via XPath)
         if not xpath or xpath.strip() == "/":
             logger.error(f"XPath non fourni ou invalide pour {url}. Un XPath est requis pour les sources non-JSON.")
             return False, "XPath non fourni ou invalide"
 
         logger.info(f"Utilisation du XPath : {xpath}")
 
-        # Attendre que l’élément soit cliquable
         element = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, xpath))
         )
@@ -147,15 +119,12 @@ def driver_dl(row, driver):
             logger.error(f"Élément avec le XPath {xpath} non trouvé.")
             return False, "Élément non trouvé pour le clic"
 
-        # Récupérer l'URL cible de l’élément avant de cliquer (si disponible)
         href = element.get_attribute("href")
         logger.info(f"Attribut href de l’élément : {href}")
 
-        # Télécharger le fichier via clic
         before_files = set(glob.glob(os.path.join(TEMP_DOWNLOAD_DIR, "*")))
         element.click()
 
-        # Vérifier si un fichier est téléchargé dans TEMP_DOWNLOAD_DIR
         timeout = 5
         start_time = time.time()
         downloaded_file = None
@@ -175,7 +144,6 @@ def driver_dl(row, driver):
             time.sleep(1)
 
         if downloaded_file:
-            # Cas classique : fichier téléchargé dans TEMP_DOWNLOAD_DIR
             downloaded_filename = os.path.basename(downloaded_file)
             logger.info(f"Fichier téléchargé : {downloaded_filename}")
             prefix = sanitize_filename(row[columns[0]])
@@ -186,30 +154,25 @@ def driver_dl(row, driver):
             logger.info(f"Fichier téléchargé et sauvegardé : {destination_path}")
             return True, None
         else:
-            # Si aucun fichier n'est téléchargé, utiliser l'URL cible avec requests
             logger.info("Aucun fichier détecté dans TEMP_DOWNLOAD_DIR, tentative via URL cible...")
-            time.sleep(2)  # Attendre une éventuelle redirection
+            time.sleep(2)
             current_url = driver.current_url
             logger.info(f"URL après clic : {current_url}")
 
-            # Choisir l'URL à utiliser : href si disponible, sinon current_url
             target_url = href if href else current_url
 
             if not target_url:
                 logger.error(f"Aucune URL cible valide trouvée pour {url}")
                 return False, "Aucune URL cible valide trouvée"
 
-            # Télécharger avec requests
             response = requests.get(target_url)
             response.raise_for_status()
 
-            # Déterminer le nom et l’extension du fichier
             content_type = response.headers.get('Content-Type', '').lower()
             downloaded_filename = os.path.basename(urlparse(target_url).path)
-            if not downloaded_filename:  # Si aucun nom dans l’URL
+            if not downloaded_filename:
                 downloaded_filename = "document"
 
-            # Ajouter l’extension correcte basée sur Content-Type
             if 'application/pdf' in content_type or downloaded_filename.lower().endswith('.pdf'):
                 if not downloaded_filename.lower().endswith('.pdf'):
                     downloaded_filename += '.pdf'
@@ -230,7 +193,6 @@ def driver_dl(row, driver):
             final_filename = f"{prefix} - {downloaded_filename}"
             destination_path = os.path.join(DEST_PATH, final_filename)
 
-            # Sauvegarder le fichier
             os.makedirs(DEST_PATH, exist_ok=True)
             with open(destination_path, "wb") as fichier:
                 fichier.write(response.content)
@@ -247,48 +209,48 @@ def driver_dl(row, driver):
         logger.error(f"Erreur inattendue : {type(e).__name__} - {str(e)}")
         return False, f"Erreur inattendue : {str(e)}"
 
-# Fonction pour obtenir la liste des sources
 def get_sources():
     df = pd.read_excel(SOURCE_FILE, sheet_name="Source sans doub", dtype=str)
-    sources = df[columns[0]].tolist()
+    sources = df[df.columns[0]].tolist()
     logger.info(f"Sources trouvées : {sources}")
     return sources
 
-# Fonction principale de téléchargement
-def download_files(status_queue):
+def download_files(sources, status_queue):
     """
-    Exécute le téléchargement des fichiers pour toutes les sources et envoie les mises à jour de statut via une file d’attente.
+    Exécute le téléchargement des fichiers pour les sources données et envoie les mises à jour de statut via une file d’attente.
 
     Args:
+        sources (list): Liste des sources à télécharger.
         status_queue (queue.Queue): File d’attente pour envoyer les mises à jour de statut.
 
     Returns:
         tuple: (nombre de succès, total, liste des erreurs).
     """
+    df = pd.read_excel(SOURCE_FILE, sheet_name="Source sans doub", dtype=str)
+    columns = df.columns.tolist()
+    df_to_download = df[df[columns[0]].isin(sources)]
+
     errors = []
     successes = 0
-    total = len(df)
+    total = len(df_to_download)
 
-    # Configurer Selenium avec Chrome
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
     options.add_argument("--disable-gpu")
-    options.add_argument("--disable-blink-features=AutomationControlled")  # Éviter la détection de bot
-    service = Service("C:/chromedriver/chromedriver.exe")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    service = Service(CHROMEDRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=options)
 
     try:
-        for index, row in df.iterrows():
+        for index, row in df_to_download.iterrows():
             source = row[columns[0]]
-            # Signaler que le téléchargement commence ou que la source est ignorée
             if row[columns[1]] != "1" and row[columns[1]] != "2":
                 status_queue.put((source, "🚫 Ignoré"))
             else:
                 status_queue.put((source, "⏳ En cours"))
-
                 if row[columns[1]] == "1":
                     logger.info(f"Démarrage extraction {source} - {row[columns[2]]}")
-                    success, error = simple_dl(row)
+                    success, error = simple_dl(row, columns)
                     if success:
                         successes += 1
                         status_queue.put((source, "✅ Succès"))
@@ -296,10 +258,9 @@ def download_files(status_queue):
                         errors.append((source, error))
                         status_queue.put((source, "❌ Échec"))
                     logger.info(f"Fin extraction {source} - {row[columns[2]]}")
-
                 elif row[columns[1]] == "2":
                     logger.info(f"Démarrage extraction {source} - {row[columns[2]]}")
-                    success, error = driver_dl(row, driver)
+                    success, error = driver_dl(row, columns, driver)
                     if success:
                         successes += 1
                         status_queue.put((source, "✅ Succès"))
@@ -310,6 +271,5 @@ def download_files(status_queue):
     finally:
         driver.quit()
 
-    # Signaler la fin du téléchargement
     status_queue.put(("DONE", None))
     return successes, total, errors
