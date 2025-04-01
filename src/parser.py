@@ -1,9 +1,11 @@
+# src/parser.py
 import os
 import pandas as pd
 import tabula
 import pdfplumber
 import json
 import re
+import csv
 from datetime import datetime
 
 # Chemin des fichiers téléchargés
@@ -22,24 +24,36 @@ def get_downloaded_files():
             files[source] = os.path.join(DOWNLOAD_DIR, file_name)
     return files
 
-
 def parse_file(file_path, separator=None, page=0):
+    """Parse le fichier selon son extension en séparant toutes les lignes avec le séparateur."""
     ext = os.path.splitext(file_path)[1].lower()
 
-    if ext == ".pdf":
+    if ext == ".csv":
+        if separator is None:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                try:
+                    dialect = csv.Sniffer().sniff(f.read(1024))
+                    separator = dialect.delimiter
+                except csv.Error:
+                    separator = ';'  # Fallback sur ';' pour ton cas
+
+        raw_data = []
+        with open(file_path, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f, delimiter=separator)
+            for row in reader:
+                raw_data.append([cell.strip() for cell in row])
+        return raw_data
+    elif ext == ".pdf":
         try:
-            # Essayer tabula-py avec lattice puis stream
             tables = tabula.read_pdf(file_path, pages=str(page + 1), lattice=True, multiple_tables=True)
             print(f"Tables extraites par tabula-py avec lattice (page {page + 1}): {tables}")
             if tables and not tables[0].empty:
                 df = tables[0].astype(str)
-                # Post-traitement : diviser les cellules avec plusieurs valeurs numériques
                 result = []
                 for row in df.values:
                     new_row = []
                     for cell in row:
                         if cell != 'nan' and ' ' in cell:
-                            # Diviser si la cellule contient des nombres ou pourcentages
                             parts = cell.split()
                             if any(re.match(r'[+-]?\d*[.,]?\d+%?', p) for p in parts):
                                 new_row.extend(parts)
@@ -48,7 +62,6 @@ def parse_file(file_path, separator=None, page=0):
                         else:
                             new_row.append(cell)
                     result.append([x for x in new_row if x != 'nan'])
-                # Supprimer les lignes vides
                 result = [row for row in result if any(x.strip() for x in row)]
                 return result
 
@@ -72,7 +85,6 @@ def parse_file(file_path, separator=None, page=0):
                 result = [row for row in result if any(x.strip() for x in row)]
                 return result
 
-            # Fallback avec pdfplumber
             with pdfplumber.open(file_path) as pdf:
                 if page >= len(pdf.pages) or page < 0:
                     print(f"Page {page} invalide pour {file_path}")
@@ -82,7 +94,6 @@ def parse_file(file_path, separator=None, page=0):
                 print(f"Texte brut extrait par pdfplumber (page {page}): {text}")
 
                 def parse_text_to_table(text):
-                    import re
                     lines = text.splitlines()
                     rows = []
                     pattern = r"^(.*?)\s+([\d.,]+)\s+([\d.,]+)\s+([+-]?\d+,\d+)\s+([+-]?\d+[.,]\d+)%?-?$"
@@ -104,25 +115,33 @@ def parse_file(file_path, separator=None, page=0):
         except Exception as e:
             print(f"Erreur avec tabula-py : {e}")
             return []
-    elif ext in [".csv", ".xls", ".xlsx"]:
-        if ext == ".csv":
-            df = pd.read_csv(file_path, sep=separator)
-        else:
-            df = pd.read_excel(file_path)
-        return df.astype(str).values.tolist()
+    elif ext in [".xls", ".xlsx"]:
+        df = pd.read_excel(file_path)
+        return [df.columns.tolist()] + df.astype(str).values.tolist()
 
     return []
 
 def extract_data(raw_data, title_range=None, data_range=None):
-    """Extrait les titres et données selon les plages définies."""
+    """Extrait les titres et données selon les plages définies, avec fusion des lignes de titres."""
     if not raw_data:
         return [], []
+    # title_range: [start_row, end_row, start_col, end_col]
+    if title_range:
+        titles = []
+        for row in raw_data[title_range[0]:title_range[1] + 1]:
+            row_titles = row[title_range[2]:title_range[3] + 1]
+            if not titles:
+                titles = row_titles
+            else:
+                # Fusionner les lignes de titres en combinant les cellules (si non vides)
+                titles = [f"{t} {r}".strip() if r and t else t or r for t, r in zip(titles, row_titles)]
+    else:
+        titles = raw_data[0]
 
-    # title_range: [row, col_start, col_end]
-    titles = raw_data[title_range[0]][title_range[1]:title_range[2] + 1] if title_range else raw_data[0]
-    # data_range: [row_start, row_end], colonnes héritées des titres
-    data = [row[title_range[1]:title_range[2] + 1] for row in
-            raw_data[data_range[0]:data_range[1] + 1]] if data_range else raw_data[1:]
+    # data_range: [start_row, end_row]
+    data_start = data_range[0] if data_range else 1
+    data_end = data_range[1] + 1 if data_range else len(raw_data)
+    data = [row[title_range[2]:title_range[3] + 1] for row in raw_data[data_start:data_end]] if title_range and data_range else raw_data[1:]
     return titles, data
 
 def load_settings():
@@ -141,10 +160,10 @@ def get_source_settings(source):
     """Retourne les paramètres d'une source spécifique."""
     settings = load_settings()
     return settings.get(source, {
-        "separator": ",",
+        "separator": ";",
         "page": 0,
-        "title_range": [0, 0, 4],  # Ajusté pour 5 colonnes (n MDH, 2025, 2024, VALEUR, %)
-        "data_range": [1, 10]
+        "title_range": [2, 3, 0, 2],  # Ajusté pour ton cas : lignes 2-3, colonnes 0-2
+        "data_range": [4, 13]         # Exemple pour les 10 premières lignes de données
     })
 
 def update_source_settings(source, separator, page, title_range, data_range):
@@ -153,7 +172,7 @@ def update_source_settings(source, separator, page, title_range, data_range):
     settings[source] = {
         "separator": separator,
         "page": page,
-        "title_range": title_range,
+        "title_range": title_range,  # [start_row, end_row, start_col, end_col]
         "data_range": data_range
     }
     save_settings(settings)

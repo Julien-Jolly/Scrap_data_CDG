@@ -183,9 +183,19 @@ def main():
 
         default_page = settings.get("page", 0)
 
-        default_title_range = settings["title_range"]
+        default_title_range = settings["title_range"]  # [start_row, end_row, start_col, end_col]
 
-        default_data_range = settings["data_range"]
+        default_data_range = settings["data_range"]  # [start_row, end_row]
+
+        # Extraire les valeurs par défaut
+
+        default_title_start_row = default_title_range[0] if len(default_title_range) > 3 else default_title_range[0]
+
+        default_title_end_row = default_title_range[1] if len(default_title_range) > 3 else default_title_range[0]
+
+        default_title_col_start = default_title_range[2] if len(default_title_range) > 3 else 0
+
+        default_title_col_end = default_title_range[3] if len(default_title_range) > 3 else default_title_range[2]
 
         # Rafraîchir si la source ou la page change
 
@@ -195,13 +205,21 @@ def main():
 
                 st.session_state.get("last_page") != default_page):
 
-            raw_data = parse_file(file_path, default_separator, default_page)
+            try:
 
-            st.session_state["raw_data"] = raw_data
+                raw_data = parse_file(file_path, default_separator, default_page)
 
-            st.session_state["last_source"] = selected_source
+                st.session_state["raw_data"] = raw_data
 
-            st.session_state["last_page"] = default_page
+                st.session_state["last_source"] = selected_source
+
+                st.session_state["last_page"] = default_page
+
+            except pd.errors.ParserError as e:
+
+                st.error(f"Erreur de parsing avec le séparateur '{default_separator}': {e}. Modifiez-le ci-dessous.")
+
+                raw_data = []
 
         else:
 
@@ -214,20 +232,30 @@ def main():
             st.write("### Contenu brut")
 
             page_to_extract = st.number_input("Page à extraire (PDF uniquement)", min_value=0, value=default_page,
+
                                               step=1)
 
             if page_to_extract != st.session_state.get("last_page"):
-                raw_data = parse_file(file_path, default_separator, page_to_extract)
 
-                st.session_state["raw_data"] = raw_data
+                try:
 
-                st.session_state["last_page"] = page_to_extract
+                    raw_data = parse_file(file_path, default_separator, page_to_extract)
 
-                st.session_state["last_source"] = selected_source
+                    st.session_state["raw_data"] = raw_data
+
+                    st.session_state["last_page"] = page_to_extract
+
+                    st.session_state["last_source"] = selected_source
+
+                except pd.errors.ParserError as e:
+
+                    st.error(f"Erreur de parsing avec le séparateur '{default_separator}': {e}. Ajustez-le ci-dessous.")
+
+                    raw_data = []
 
             if not raw_data:
 
-                st.warning(f"Aucun contenu extrait pour la page {page_to_extract}. Essayez une autre page.")
+                st.warning(f"Aucun contenu extrait. Vérifiez le fichier ou le séparateur.")
 
             else:
 
@@ -242,33 +270,54 @@ def main():
             separator = st.text_input("Séparateur", value=default_separator)
 
             if st.button("Mettre à jour le contenu"):
-                raw_data = parse_file(file_path, separator, page_to_extract)
 
-                st.session_state["raw_data"] = raw_data
+                try:
 
-                st.session_state["last_page"] = page_to_extract
+                    raw_data = parse_file(file_path, separator, page_to_extract)
 
-                st.session_state["last_source"] = selected_source
+                    st.session_state["raw_data"] = raw_data
 
-                st.rerun()
+                    st.session_state["last_page"] = page_to_extract
+
+                    st.session_state["last_source"] = selected_source
+
+                    st.success("Contenu mis à jour avec succès.")
+
+                    st.rerun()
+
+                except pd.errors.ParserError as e:
+
+                    st.error(f"Erreur avec le séparateur '{separator}': {e}. Essayez un autre (ex. ';', '\\t').")
 
             st.write("#### Plage des titres")
 
             max_rows = len(raw_data) if raw_data else 1
 
-            max_cols = len(raw_data[0]) if raw_data and raw_data[0] else 1
+            max_cols = max(len(row) for row in raw_data) if raw_data else 1
 
-            title_row = st.number_input("Ligne des titres", min_value=0, max_value=max_rows - 1,
+            title_row_start = st.number_input("Ligne début titres", min_value=0, max_value=max_rows - 1,
 
-                                        value=min(default_title_range[0], max_rows - 1))
+                                              value=min(default_title_start_row, max_rows - 1))
+
+            # Ajuster la valeur par défaut de title_row_end pour qu'elle soit >= title_row_start
+
+            default_title_end_row_adjusted = max(title_row_start, default_title_end_row)
+
+            title_row_end = st.number_input("Ligne fin titres", min_value=title_row_start, max_value=max_rows - 1,
+
+                                            value=min(default_title_end_row_adjusted, max_rows - 1))
 
             title_col_start = st.number_input("Colonne début titres", min_value=0, max_value=max_cols - 1,
 
-                                              value=min(default_title_range[1], max_cols - 1))
+                                              value=min(default_title_col_start, max_cols - 1))
 
-            title_col_end = st.number_input("Colonne fin titres", min_value=0, max_value=max_cols - 1,
+            # Ajuster la valeur par défaut de title_col_end pour qu'elle soit >= title_col_start
 
-                                            value=min(default_title_range[2], max_cols - 1))
+            default_title_col_end_adjusted = max(title_col_start, default_title_col_end)
+
+            title_col_end = st.number_input("Colonne fin titres", min_value=title_col_start, max_value=max_cols - 1,
+
+                                            value=min(default_title_col_end_adjusted, max_cols - 1))
 
             st.write("#### Plage des données")
 
@@ -276,13 +325,13 @@ def main():
 
                                              value=min(default_data_range[0], max_rows - 1))
 
-            data_row_end = st.number_input("Ligne fin données", min_value=0, max_value=max_rows - 1,
+            data_row_end = st.number_input("Ligne fin données", min_value=data_row_start, max_value=max_rows - 1,
 
                                            value=min(default_data_range[1], max_rows - 1))
 
             if st.button("Appliquer et Sauvegarder"):
 
-                title_range = [title_row, title_col_start, title_col_end]
+                title_range = [title_row_start, title_row_end, title_col_start, title_col_end]
 
                 data_range = [data_row_start, data_row_end]
 
@@ -290,9 +339,7 @@ def main():
 
                 if raw_data:
 
-                    titles = raw_data[title_row][title_col_start:title_col_end + 1]
-
-                    data = [row[title_col_start:title_col_end + 1] for row in raw_data[data_row_start:data_row_end + 1]]
+                    titles, data = extract_data(raw_data, title_range, data_range)
 
                     if len(titles) == len(data[0]):
 

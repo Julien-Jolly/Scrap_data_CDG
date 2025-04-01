@@ -5,75 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9c4f2f80-f517-46c4-8bc8-3b88324d6a3c" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/parser.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source126 - Taux de chômage selon les tranches d'âge au milieu urbain - Trimestriel (10).xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source127 - PIB en volume - Tableau (6).xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source128 - PIBenVolume.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source129 - Copie%20de%20MRE_Pays_0.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source130 - Copie%20de%20Voyages_Pays_1.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source131 - IMEE%20Fin%20F%C3%A9vrier%202025.pdf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source132 - IMEE%20Fin%20F%C3%A9vrier%202025.pdf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source133 - download.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source2 - STAT_OPCVM_HEBDO_AMMC 14.03.2025 (14).xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source24 - Operations-principales_30_03_2025-20_08.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source25 - Facilites-permanentes_30_03_2025-14_58 (4).csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source26 - Operations-de-long-terme_30_03_2025-17_44 (1).csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source28 - Indice-monia-moroccan-overnight-index-average_30_03_2025-19_16 (1).csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source29 - Constitution-de-la-reserve-obligatoire_30_03_2025-02_01 (2).csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source30 - Taux-de-reference-des-bons-du-tresor_30_03_2025-21_21.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source31 - Encours-des-interventions_29_03_2025-22_01 (1).csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source32 - Resultats-des-emissions-de-bons-du-tresor_30_03_2025-13_01 (1).csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source34 - Bande-de-fluctuation_30_03_2025-12_35 (1).csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source35 - Cours-de-reference_30_03_2025-10_11 (2).csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source36 - Marche-monetaire-interbancaire_30_03_2025-07_01.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source37 - 30-Compte%20de%20patrimoine%20des%20caisses%20de%20retraite.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source38 - 41-Position%20des%20ASF%20vis-vis%20des%20m%C3%A9nages.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source39 - 40-Position%20des%20ASF%20vis-vis%20des%20soci%C3%A9t%C3%A9s%20non%20financires.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source40 - 39-Cr%C3%A9ances%20des%20ASF%20sur%20les%20agents%20non%20financiers%20par%20objet%20%C3%A9conomique.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source41 - 38-Cr%C3%A9ances%20des%20ASF%20sur%20les%20agents%20non%20financiers%20par%20catgorie%20de%20cr%C3%A9ancier.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source42 - 37-Position%20des%20autres%20soci%C3%A9t%C3%A9s%20financire%20vis-vis%20de%20l'Administration%20Centrale.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source43 - 35-Compte%20de%20patrimoine%20des%20FPCT.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source44 - 34-Compte%20de%20patrimoine%20des%20AMC.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source45 - 33-Compte+de+patrimoine+de+la+CDG.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source46 - 32-Compte+de+patrimoine+des+banques+off-shores.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source47 - 31-Compte%20de%20patrimoine%20des%20soci%C3%A9t%C3%A9s%20de%20financement.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source48 - 29-Compte%20de%20patrimoine%20des%20entreprises%20d'assurances%20et%20de%20r%C3%A9assurance.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source49 - 18-Ventilation%20crois%C3%A9e%20des%20cr%C3%A9dits%20bancaires%20par%20objet%20et%20par%20terme.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source50 - 17-Ventilation%20des%20cr%C3%A9dits%20%C3%A0%20l'%C3%A9quipement%20par%20branche%20d'activit%C3%A9.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source51 - 16-Ventilation%20des%20comptes%20d%C3%A9biteurs%20et%20cr%C3%A9dits%20de%20tr%C3%A9sorerie%20par%20branche%20d'activit%C3%A9.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source52 - 15-Ventilation%20trimestrielle%20des%20cr%C3%A9dits%20par%20terme%20et%20par%20branche%20d'activit%C3%A9.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source53 - 28-Compte%20de%20patrimoine%20des%20OPCVM%20diversifi%C3%A9s.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source54 - 27-Compte%20de%20patrimoine%20des%20OPCVM%20Actions.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source55 - 26-Compte%20de%20patrimoine%20des%20OPCVM%20obligations.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source56 - 25-Compte%20de%20patrimoine%20des%20OPCVM%20autres%20que%20mon%C3%A9taires.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source57 - 24-ENGAGEMENTS%20ENVERS%20LES%20AUTRES%20SECTEURS%20RESIDENTS.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source58 - 23-CREANCES%20DES%20ID%20SUR%20LES%20AUTRES%20SECTEURS%20RESIDENTS.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source59 - 22-Position%20des%20ID%20vis-%C3%A0-vis%20des%20soci%C3%A9t%C3%A9s%20non%20%EF%AC%81nanci%C3%A8res%20priv%C3%A9es.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source60 - 21-Position%20des%20ID%20vis-%C3%A0-vis%20du%20secteur%20public%20hors%20Administration%20Centrale.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source61 - 20-%20Position%20des%20ID%20vis-%C3%A0-vis%20des%20autres%20soci%C3%A9t%C3%A9s%20%EF%AC%81nanci%C3%A8res.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source62 - 19-Position%20des%20ID%20vis-%C3%A0-vis%20des%20secteurs%20institutionnels.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source63 - 14-%20Ventilation%20crois%C3%A9e%20du%20cr%C3%A9dit%20bancaire%20par%20secteur%20%C3%A9conomique%20et%20par%20objet.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source64 - 13-%20Ventilation%20du%20cr%C3%A9dit%20bancaire%20par%20secteur%20institutionnel.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source65 - 12-%20Ventilation%20du%20cr%C3%A9dit%20bancaire%20par%20objet%20%C3%A9conomique.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source66 - 11-CreancesSurL'Economie.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source67 - 10-CreancesNettesAC.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source68 - 9-AvoirsExterieursNets.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source69 - 8-ContrepartiesDeM3.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source70 - 7-AgregatsDePL.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source71 - 6-AgregatsDeMonnaie.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source72 - 5-Compte%20De%20Patrimoine%20Des%20OPCVM%20mon%C3%A9taires.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source73 - 4-Compte%20De%20Patrimoine%20Des%20banques%20et%20fen%C3%A9tres%20participatives.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source74 - 3-CompteDePatrimoineDesbanques.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source75 - 2-CompteDePatrimoineDeSAutresInstitutionsDeDpts.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source76 - 1-CompteDePatrimoineDeBAM.xlsx.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source78 - BKAM série IPSB 2022 (12).xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source79 - BKAM Séries IPAI T4 2024 (9).xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source80 - BKAM Inflation et inflation sous jacente (8).xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source81 - 8990852.pdf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Downloads/03-30/Source82 - 8162931.xlsx" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/download_script.log" beforeDir="false" afterPath="$PROJECT_DIR$/download_script.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/source_settings.json" beforeDir="false" afterPath="$PROJECT_DIR$/source_settings.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/parser.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
