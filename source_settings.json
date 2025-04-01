@@ -1,0 +1,41 @@
+{
+    "Source2": {
+        "separator": ",",
+        "page": 0,
+        "title_range": [
+            20,
+            1,
+            7
+        ],
+        "data_range": [
+            21,
+            27
+        ]
+    },
+    "Source126": {
+        "separator": ",",
+        "page": 0,
+        "title_range": [
+            19,
+            1,
+            6
+        ],
+        "data_range": [
+            20,
+            95
+        ]
+    },
+    "Source81": {
+        "separator": ",",
+        "page": 0,
+        "title_range": [
+            3,
+            5,
+            11
+        ],
+        "data_range": [
+            5,
+            5
+        ]
+    }
+}
