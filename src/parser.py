@@ -28,7 +28,21 @@ def parse_file(file_path, separator=None, page=0):
     """Parse le fichier selon son extension en séparant toutes les lignes avec le séparateur."""
     ext = os.path.splitext(file_path)[1].lower()
 
-    if ext == ".csv":
+    if ext == ".json":
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        # Convertir le JSON en une liste de listes (format attendu par l'application)
+        if isinstance(data, list):
+            if data and isinstance(data[0], dict):
+                headers = list(data[0].keys())
+                rows = [list(item.values()) for item in data]
+                return [headers] + rows
+        # Si le JSON n’est pas une liste de dictionnaires, on le traite comme une structure simple
+        elif isinstance(data, dict):
+            # Convertir en une liste de paires clé-valeur
+            return [[k, str(v)] for k, v in data.items()]
+        return []  # À ajuster selon le format exact du JSON
+    elif ext == ".csv":
         if separator is None:
             with open(file_path, 'r', encoding='utf-8') as f:
                 try:
@@ -157,7 +171,7 @@ def save_settings(settings):
         json.dump(settings, f, indent=4)
 
 def get_source_settings(source):
-    """Retourne les paramètres d'une source spécifique."""
+    """Retourne les paramètres d’une source spécifique."""
     settings = load_settings()
     return settings.get(source, {
         "separator": ";",
@@ -167,7 +181,7 @@ def get_source_settings(source):
     })
 
 def update_source_settings(source, separator, page, title_range, data_range):
-    """Met à jour les paramètres d'une source."""
+    """Met à jour les paramètres d’une source."""
     settings = load_settings()
     settings[source] = {
         "separator": separator,

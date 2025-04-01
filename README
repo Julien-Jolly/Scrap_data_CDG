@@ -1,0 +1,172 @@
+Description
+Scrap_data_CDG est une application Python conçue pour extraire, analyser et visualiser des données à partir de fichiers CSV, PDF et Excel, avec une interface utilisateur interactive basée sur Streamlit. Initialement développée pour scraper et traiter des données spécifiques (par exemple, des cours de référence ou des indicateurs financiers), elle a évolué pour offrir une solution flexible permettant de parser des fichiers bruts et d’extraire des plages de données personnalisées définies par l’utilisateur.
+Fonctionnalités principales
+Téléchargement de fichiers : Importation de fichiers depuis des sources locales ou téléchargeables.
+
+Parsing multi-format : Support des fichiers CSV, PDF (via Tabula-py et pdfplumber) et Excel.
+
+Affichage brut : Visualisation des données brutes dans une interface claire.
+
+Extraction personnalisée : Sélection dynamique des plages de titres (sur plusieurs lignes) et de données via une interface graphique.
+
+Sauvegarde des paramètres : Mémorisation des configurations par source dans un fichier JSON.
+
+Gestion des erreurs : Messages d’erreur détaillés pour les problèmes de parsing ou de configuration.
+
+Ce projet est particulièrement adapté pour traiter des fichiers avec des structures variées, comme ceux contenant des métadonnées, des titres sur plusieurs lignes, ou des données tabulaires irrégulières.
+Prérequis
+Python : Version 3.8 ou supérieure.
+
+Système d’exploitation : Compatible Windows, macOS, Linux.
+
+Dépendances : Liste des bibliothèques Python nécessaires (voir Installation).
+
+Installation
+Cloner le dépôt :
+bash
+
+git clone https://github.com/<votre-utilisateur>/Scrap_data_CDG.git
+cd Scrap_data_CDG
+
+Créer un environnement virtuel (optionnel mais recommandé) :
+bash
+
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+venv\Scripts\activate     # Windows
+
+Installer les dépendances :
+Créez un fichier requirements.txt avec le contenu suivant :
+
+streamlit==1.20.0
+pandas==2.0.0
+tabula-py==2.7.0
+pdfplumber==0.10.2
+openpyxl==3.1.2
+
+Puis exécutez :
+bash
+
+pip install -r requirements.txt
+
+Vérifier Java (pour Tabula-py) :
+Assurez-vous que Java est installé (requis pour extraire des tables de PDF avec Tabula-py).
+
+Téléchargez Java depuis java.com si nécessaire.
+
+Structure du projet
+
+Scrap_data_CDG/
+├── Downloads/          # Répertoire pour les fichiers téléchargés (généré dynamiquement)
+├── src/                # Code source
+│   ├── app.py          # Application Streamlit principale
+│   ├── parser.py       # Fonctions de parsing et d’extraction
+│   └── source_settings.json  # Fichier de configuration (généré dynamiquement)
+├── main.py             # Point d’entrée du programme
+├── requirements.txt    # Dépendances Python
+└── README.md           # Documentation (ce fichier)
+
+Utilisation
+Lancer l’application :
+Depuis le répertoire principal :
+bash
+
+streamlit run main.py
+
+Cela ouvrira l’interface dans votre navigateur par défaut (ex. http://localhost:8501).
+
+Charger un fichier :
+Placez vos fichiers (CSV, PDF, Excel) dans le répertoire Downloads/<mois-jour>/ (ex. Downloads/04-01/ pour le 1er avril).
+
+Ou utilisez une fonctionnalité de téléchargement si implémentée dans app.py.
+
+Analyser et extraire des données :
+Sélectionnez une source dans le menu déroulant.
+
+Ajustez le séparateur si nécessaire (par défaut : ; pour les CSV).
+
+Visualisez le contenu brut dans la colonne de gauche.
+
+Configurez les plages dans la colonne de droite :
+Plage des titres :
+Ligne début titres et Ligne fin titres : Pour sélectionner une ou plusieurs lignes de titres.
+
+Colonne début titres et Colonne fin titres : Pour définir les colonnes des titres.
+
+Plage des données :
+Ligne début données et Ligne fin données : Pour extraire les lignes de données.
+
+Cliquez sur Appliquer et Sauvegarder pour voir les résultats et enregistrer les paramètres.
+
+Exemple :
+Pour le fichier CSV suivant :
+
+"Cours de référence"
+"<a href='...'>Service API Cours de référence</a>"
+;28/03/2025;27/03/2025
+Devises;Moyen;Moyen
+"1 EURO";10,4076;10,3903
+"1 DOLLAR U.S.A.";9,6607;9,6317
+
+Réglez :
+Ligne début titres = 2, Ligne fin titres = 3, Colonne début titres = 0, Colonne fin titres = 2.
+
+Ligne début données = 4, Ligne fin données = 5.
+
+Résultat :
+Titres : ["Devises", "Moyen 28/03/2025", "Moyen 27/03/2025"].
+
+Données :
+
+Devises         Moyen 28/03/2025  Moyen 27/03/2025
+1 EURO          10,4076           10,3903
+1 DOLLAR U.S.A. 9,6607            9,6317
+
+Fonctionnement interne
+main.py
+Point d’entrée qui appelle la fonction main() de app.py.
+
+app.py
+Interface Streamlit avec deux sections principales :
+Contenu brut : Affiche toutes les lignes du fichier parsé.
+
+Paramétrage : Permet de définir les plages et d’extraire les données.
+
+parser.py
+Fonctions clés :
+parse_file(file_path, separator, page) : Parse les fichiers selon leur extension (CSV avec csv.reader, PDF avec Tabula/Pdfplumber, Excel avec Pandas).
+
+extract_data(raw_data, title_range, data_range) : Extrait et fusionne les titres sur plusieurs lignes, puis récupère les données correspondantes.
+
+get_source_settings(source) : Charge les paramètres par défaut ou sauvegardés.
+
+update_source_settings(...) : Sauvegarde les configurations dans source_settings.json.
+
+Dépannage
+Erreur de parsing CSV : Vérifiez le séparateur dans l’interface (ex. ; au lieu de ,).
+
+Erreur StreamlitAPIException : Assurez-vous que les plages (début/fin) sont cohérentes (ex. fin >= début).
+
+PDF non parsé : Vérifiez que Java est installé et que le fichier contient des tables lisibles.
+
+Fichier non trouvé : Confirmez que le fichier est dans le bon répertoire Downloads/<mois-jour>/.
+
+Contribution
+Forkez le projet.
+
+Créez une branche pour votre fonctionnalité (git checkout -b feature/nouvelle-fonction).
+
+Commitez vos changements (git commit -m "Ajout de la fonctionnalité X").
+
+Poussez votre branche (git push origin feature/nouvelle-fonction).
+
+Ouvrez une Pull Request.
+
+Crédits
+Développé par Julien, avec l’assistance de Grok (xAI) pour l’optimisation et le débogage.
+
+Bibliothèques utilisées : Streamlit, Pandas, Tabula-py, pdfplumber, openpyxl.
+
+Licence
+Ce projet est sous licence MIT. Voir le fichier LICENSE (à créer si nécessaire) pour plus de détails.
+

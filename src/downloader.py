@@ -16,6 +16,7 @@ import glob
 import queue
 import certifi
 from urllib.parse import urlparse
+import json
 
 # Configuration du logging
 logging.basicConfig(
@@ -86,20 +87,59 @@ def simple_dl(row):
         logger.error(f"Erreur inattendue : {type(e).__name__} - {str(e)}")
         return False, str(e)
 
-
 def driver_dl(row, driver):
-    #ok
     url = row[columns[2]]
     xpath = row[columns[3]]
 
+    # Vérifier que l'URL est valide
+    if not url or not isinstance(url, str) or not url.strip():
+        logger.error(f"URL invalide pour la source {row[columns[0]]}: {url}")
+        return False, "URL invalide"
+
+    # Ajouter un préfixe http:// si l'URL n'en a pas
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+        logger.info(f"URL ajustée : {url}")
+
     try:
-        # Charger la page initiale
+        logger.info(f"Tentative d'accès à l'URL : {url}")
         driver.get(url)
-        #time.sleep(2)  # Attendre le chargement initial
-        logger.info(f"Page ouverte : {url}")
+        logger.info(f"Page ouverte avec succès : {url}")
+
+        # Vérifier si la page affiche directement du JSON (cas de Medias24_Stocks)
+        content_type = driver.execute_script("return document.contentType;")
+        if 'application/json' in content_type.lower() or url.endswith('json'):
+            # Récupérer le contenu JSON directement
+            content = driver.find_element(By.TAG_NAME, "body").text
+            try:
+                data = json.loads(content)
+            except json.JSONDecodeError:
+                # Si le JSON est dans un tag <pre> (souvent le cas pour les API)
+                try:
+                    pre_element = driver.find_element(By.TAG_NAME, "pre")
+                    content = pre_element.text
+                    data = json.loads(content)
+                except:
+                    logger.error(f"Le contenu de {url} n’est pas du JSON valide.")
+                    return False, "Le contenu n’est pas du JSON valide"
+
+            # Sauvegarder le JSON
+            prefix = sanitize_filename(row[columns[0]])
+            destination_path = os.path.join(DEST_PATH, f"{prefix} - data.json")
+            os.makedirs(DEST_PATH, exist_ok=True)
+            with open(destination_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4)
+            logger.info(f"Fichier JSON sauvegardé : {destination_path}")
+            return True, None
+
+        # Si ce n’est pas du JSON, on suit la logique existante (clic sur un élément via XPath)
+        if not xpath or xpath.strip() == "/":
+            logger.error(f"XPath non fourni ou invalide pour {url}. Un XPath est requis pour les sources non-JSON.")
+            return False, "XPath non fourni ou invalide"
+
         logger.info(f"Utilisation du XPath : {xpath}")
 
-        # Attendre que l'élément soit cliquable
+        # Attendre que l’élément soit cliquable
         element = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, xpath))
         )
@@ -107,9 +147,9 @@ def driver_dl(row, driver):
             logger.error(f"Élément avec le XPath {xpath} non trouvé.")
             return False, "Élément non trouvé pour le clic"
 
-        # Récupérer l'URL cible de l'élément avant de cliquer (si disponible)
+        # Récupérer l'URL cible de l’élément avant de cliquer (si disponible)
         href = element.get_attribute("href")
-        logger.info(f"Attribut href de l'élément : {href}")
+        logger.info(f"Attribut href de l’élément : {href}")
 
         # Télécharger le fichier via clic
         before_files = set(glob.glob(os.path.join(TEMP_DOWNLOAD_DIR, "*")))
@@ -163,13 +203,13 @@ def driver_dl(row, driver):
             response = requests.get(target_url)
             response.raise_for_status()
 
-            # Déterminer le nom et l'extension du fichier
+            # Déterminer le nom et l’extension du fichier
             content_type = response.headers.get('Content-Type', '').lower()
             downloaded_filename = os.path.basename(urlparse(target_url).path)
-            if not downloaded_filename:  # Si aucun nom dans l'URL
+            if not downloaded_filename:  # Si aucun nom dans l’URL
                 downloaded_filename = "document"
 
-            # Ajouter l'extension correcte basée sur Content-Type
+            # Ajouter l’extension correcte basée sur Content-Type
             if 'application/pdf' in content_type or downloaded_filename.lower().endswith('.pdf'):
                 if not downloaded_filename.lower().endswith('.pdf'):
                     downloaded_filename += '.pdf'
@@ -198,7 +238,7 @@ def driver_dl(row, driver):
             return True, None
 
     except TimeoutException:
-        logger.error(f"Timeout : L'élément avec le XPath {xpath} n'a pas été trouvé dans les 10 secondes.")
+        logger.error(f"Timeout : L’élément avec le XPath {xpath} n’a pas été trouvé dans les 10 secondes.")
         return False, "Timeout : Élément non trouvé"
     except WebDriverException as e:
         logger.error(f"Erreur WebDriver : {str(e)}")
@@ -209,6 +249,7 @@ def driver_dl(row, driver):
 
 # Fonction pour obtenir la liste des sources
 def get_sources():
+    df = pd.read_excel(SOURCE_FILE, sheet_name="Source sans doub", dtype=str)
     sources = df[columns[0]].tolist()
     logger.info(f"Sources trouvées : {sources}")
     return sources
@@ -216,10 +257,10 @@ def get_sources():
 # Fonction principale de téléchargement
 def download_files(status_queue):
     """
-    Exécute le téléchargement des fichiers pour toutes les sources et envoie les mises à jour de statut via une file d'attente.
+    Exécute le téléchargement des fichiers pour toutes les sources et envoie les mises à jour de statut via une file d’attente.
 
     Args:
-        status_queue (queue.Queue): File d'attente pour envoyer les mises à jour de statut.
+        status_queue (queue.Queue): File d’attente pour envoyer les mises à jour de statut.
 
     Returns:
         tuple: (nombre de succès, total, liste des erreurs).
@@ -232,6 +273,7 @@ def download_files(status_queue):
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
     options.add_argument("--disable-gpu")
+    options.add_argument("--disable-blink-features=AutomationControlled")  # Éviter la détection de bot
     service = Service("C:/chromedriver/chromedriver.exe")
     driver = webdriver.Chrome(service=service, options=options)
 
