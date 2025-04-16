@@ -4,6 +4,7 @@ from src.downloader import get_sources
 from src.download_ui import download_section
 from src.extract_ui import extract_section
 from src.manage_sources_ui import manage_sources_section
+from src.list_sources_ui import list_sources_section  # Importer la nouvelle section
 
 def main():
     # Configuration de la page
@@ -13,7 +14,8 @@ def main():
     st.sidebar.title("Menu")
     option = st.sidebar.selectbox("Choisir une action", [
         "Téléchargement des fichiers",
-        "Analyse et Extraction"
+        "Analyse et Extraction",
+        "Liste des Sources et DataFrames"  # Nouvelle option
     ])
 
     # Corps de la page
@@ -24,9 +26,11 @@ def main():
 
     if option == "Téléchargement des fichiers":
         download_section(sources)
-        manage_sources_section()  # Ajouter la section "Gestion des Sources" après le téléchargement
+        manage_sources_section()
     elif option == "Analyse et Extraction":
         extract_section()
+    elif option == "Liste des Sources et DataFrames":
+        list_sources_section()
 
 if __name__ == "__main__":
     main()

@@ -11,20 +11,8 @@
         "data_range": [
             21,
             96
-        ]
-    },
-    "Source81": {
-        "separator": ",",
-        "page": 0,
-        "title_range": [
-            3,
-            5,
-            11
         ],
-        "data_range": [
-            5,
-            5
-        ]
+        "selected_table": "Source126 - Taux de ch\u00f4mage selon les tranches d'\u00e2ge au milieu urbain - Trimestriel (11).xlsx"
     },
     "Source34": {
         "separator": ";",
@@ -38,7 +26,8 @@
         "data_range": [
             2,
             3
-        ]
+        ],
+        "selected_table": "Source34 - Bande-de-fluctuation_16_04_2025-04_51.csv"
     },
     "Source35": {
         "separator": ";",
@@ -52,7 +41,8 @@
         "data_range": [
             4,
             33
-        ]
+        ],
+        "selected_table": "Source35 - Cours-de-reference_16_04_2025-12_30.csv"
     },
     "Source31": {
         "separator": ";",
@@ -66,7 +56,8 @@
         "data_range": [
             3,
             32
-        ]
+        ],
+        "selected_table": "Source31 - Encours-des-interventions_16_04_2025-02_06.csv"
     },
     "Source127": {
         "separator": ";",
@@ -80,7 +71,8 @@
         "data_range": [
             2,
             13
-        ]
+        ],
+        "selected_table": "Source127 - PIB en volume - Tableau (6).xlsx"
     },
     "Source128": {
         "separator": ";",
@@ -94,7 +86,8 @@
         "data_range": [
             4,
             47
-        ]
+        ],
+        "selected_table": "Source128 - PIBenVolume.xlsx.xlsx"
     },
     "Source32": {
         "separator": ";",
@@ -103,12 +96,13 @@
             2,
             2,
             0,
-            2
+            8
         ],
         "data_range": [
             3,
-            7
-        ]
+            6
+        ],
+        "selected_table": "Source32 - Resultats-des-emissions-de-bons-du-tresor_16_04_2025-11_33.csv"
     },
     "Source2_1": {
         "separator": ";",
@@ -122,7 +116,8 @@
         "data_range": [
             22,
             28
-        ]
+        ],
+        "selected_table": "Source2_1 - STAT COM 28-03-2025.xls"
     },
     "Source2_2": {
         "separator": ";",
@@ -136,7 +131,8 @@
         "data_range": [
             34,
             38
-        ]
+        ],
+        "selected_table": "Source2_2 - STAT COM 28-03-2025 (1).xls"
     },
     "Source2_3": {
         "separator": ";",
@@ -150,6 +146,1192 @@
         "data_range": [
             46,
             57
-        ]
+        ],
+        "selected_table": "Source2_3 - STAT COM 28-03-2025 (1).xls"
+    },
+    "Source10": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            6
+        ],
+        "data_range": [
+            1,
+            24
+        ],
+        "selected_table": "Source10 - table_1.html"
+    },
+    "Source104": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            1,
+            7
+        ],
+        "data_range": [
+            1,
+            22
+        ],
+        "selected_table": "Source104 - table_0.html"
+    },
+    "Source11": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            4
+        ],
+        "data_range": [
+            1,
+            50
+        ],
+        "selected_table": "Source11 - table_0.html"
+    },
+    "Source110": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            9
+        ],
+        "data_range": [
+            1,
+            32
+        ],
+        "selected_table": "Source110 - table_1.html"
+    },
+    "Source111": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            15
+        ],
+        "data_range": [
+            1,
+            63
+        ],
+        "selected_table": "Source111 - table_1.html"
+    },
+    "Source12": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            5
+        ],
+        "data_range": [
+            1,
+            50
+        ],
+        "selected_table": "Source12 - table_0.html"
+    },
+    "Source14": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            6
+        ],
+        "data_range": [
+            1,
+            4
+        ],
+        "selected_table": "Source14 - table_0.html"
+    },
+    "Source33": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            3
+        ],
+        "data_range": [
+            2,
+            74
+        ],
+        "selected_table": "Source33 - table_0.html"
+    },
+    "Source8": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            9
+        ],
+        "data_range": [
+            1,
+            50
+        ],
+        "selected_table": "Source8 - table_0.html"
+    },
+    "Source9": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            1
+        ],
+        "data_range": [
+            1,
+            50
+        ],
+        "selected_table": "Source9 - table_0.html"
+    },
+    "Source129": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            2,
+            1,
+            19
+        ],
+        "data_range": [
+            3,
+            18
+        ],
+        "selected_table": "Source129 - Copie%20de%20MRE_Pays_0.xlsx.xlsx"
+    },
+    "Source112": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            1
+        ],
+        "data_range": [
+            0,
+            3
+        ],
+        "selected_table": "Source112 - table_6.html"
+    },
+    "Source13": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            5
+        ],
+        "data_range": [
+            1,
+            1
+        ],
+        "selected_table": "Source13 - table_0.html"
+    },
+    "Source130": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            2,
+            1,
+            20
+        ],
+        "data_range": [
+            3,
+            23
+        ],
+        "selected_table": "Source130 - Copie%20de%20Voyages_Pays_1.xlsx.xlsx"
+    },
+    "Source131": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            2,
+            0,
+            1
+        ],
+        "data_range": [
+            3,
+            3
+        ],
+        "selected_table": "Source131 - IMEE%20Fin%20F%C3%A9vrier%202025.pdf"
+    },
+    "Source132": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            2,
+            0,
+            1
+        ],
+        "data_range": [
+            3,
+            3
+        ],
+        "selected_table": "Source132 - IMEE%20Fin%20F%C3%A9vrier%202025.pdf"
+    },
+    "Source133": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            8,
+            8,
+            0,
+            1
+        ],
+        "data_range": [
+            9,
+            10
+        ],
+        "selected_table": "Source133 - download.xlsx"
+    },
+    "Source15": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            5
+        ],
+        "data_range": [
+            1,
+            4
+        ],
+        "selected_table": "Source15 - table_0.html"
+    },
+    "Source16": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            5
+        ],
+        "data_range": [
+            1,
+            10
+        ],
+        "selected_table": "Source16 - table_0.html"
+    },
+    "Source17": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            1
+        ],
+        "data_range": [
+            0,
+            0
+        ],
+        "selected_table": "Source17 - table_0.html"
+    },
+    "Source18": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            1
+        ],
+        "data_range": [
+            0,
+            0
+        ],
+        "selected_table": "Source18 - table_0.html"
+    },
+    "Source19": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            1
+        ],
+        "data_range": [
+            0,
+            0
+        ],
+        "selected_table": "Source19 - table_0.html"
+    },
+    "Source20": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            1
+        ],
+        "data_range": [
+            0,
+            0
+        ],
+        "selected_table": "Source20 - table_0.html"
+    },
+    "Source21": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            1
+        ],
+        "data_range": [
+            0,
+            0
+        ],
+        "selected_table": "Source21 - table_0.html"
+    },
+    "Source22": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            1
+        ],
+        "data_range": [
+            0,
+            0
+        ],
+        "selected_table": "Source22 - table_0.html"
+    },
+    "Source24": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            2,
+            0,
+            6
+        ],
+        "data_range": [
+            3,
+            17
+        ],
+        "selected_table": "Source24 - Operations-principales_16_04_2025-19_19.csv"
+    },
+    "Source25": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            2,
+            0,
+            6
+        ],
+        "data_range": [
+            3,
+            188
+        ],
+        "selected_table": "Source25 - Facilites-permanentes_16_04_2025-19_19.csv"
+    },
+    "Source26": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            2,
+            0,
+            6
+        ],
+        "data_range": [
+            3,
+            350
+        ],
+        "selected_table": "Source26 - Operations-de-long-terme_16_04_2025-14_52.csv"
+    },
+    "Source27": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            1,
+            1,
+            6
+        ],
+        "data_range": [
+            2,
+            2
+        ],
+        "selected_table": "Source27 - table_0.html"
+    },
+    "Source28": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            2,
+            0,
+            3
+        ],
+        "data_range": [
+            3,
+            1002
+        ],
+        "selected_table": "Source28 - Indice-monia-moroccan-overnight-index-average_16_04_2025-11_02.csv"
+    },
+    "Source29": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            4,
+            4,
+            0,
+            1
+        ],
+        "data_range": [
+            5,
+            31
+        ],
+        "selected_table": "Source29 - Constitution-de-la-reserve-obligatoire_16_04_2025-11_02.csv"
+    },
+    "Source30": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            2,
+            0,
+            3
+        ],
+        "data_range": [
+            3,
+            12
+        ],
+        "selected_table": "Source30 - Taux-de-reference-des-bons-du-tresor_16_04_2025-19_19.csv"
+    },
+    "Source36": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            2,
+            0,
+            3
+        ],
+        "data_range": [
+            3,
+            1002
+        ],
+        "selected_table": "Source36 - Marche-monetaire-interbancaire_16_04_2025-11_02.csv"
+    },
+    "Source37": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            17
+        ],
+        "data_range": [
+            3,
+            27
+        ],
+        "selected_table": "Source37 - 30-Compte%20de%20patrimoine%20des%20caisses%20de%20retraite.xlsx.xlsx"
+    },
+    "Source38": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            69
+        ],
+        "data_range": [
+            3,
+            36
+        ],
+        "selected_table": "Source38 - 41-Position%20des%20ASF%20vis-vis%20des%20m%C3%A9nages.xlsx.xlsx"
+    },
+    "Source39": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            69
+        ],
+        "data_range": [
+            3,
+            60
+        ],
+        "selected_table": "Source39 - 40-Position%20des%20ASF%20vis-vis%20des%20soci%C3%A9t%C3%A9s%20non%20financires.xlsx.xlsx"
+    },
+    "Source40": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            69
+        ],
+        "data_range": [
+            3,
+            50
+        ],
+        "selected_table": "Source40 - 39-Cr%C3%A9ances%20des%20ASF%20sur%20les%20agents%20non%20financiers%20par%20objet%20%C3%A9conomique.xlsx.xlsx"
+    },
+    "Source41": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            69
+        ],
+        "data_range": [
+            1,
+            31
+        ],
+        "selected_table": "Source41 - 38-Cr%C3%A9ances%20des%20ASF%20sur%20les%20agents%20non%20financiers%20par%20catgorie%20de%20cr%C3%A9ancier.xlsx.xlsx"
+    },
+    "Source42": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            69
+        ],
+        "data_range": [
+            3,
+            27
+        ],
+        "selected_table": "Source42 - 37-Position%20des%20autres%20soci%C3%A9t%C3%A9s%20financire%20vis-vis%20de%20l'Administration%20Centrale.xlsx.xlsx"
+    },
+    "Source43": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            57
+        ],
+        "data_range": [
+            3,
+            24
+        ],
+        "selected_table": "Source43 - 35-Compte%20de%20patrimoine%20des%20FPCT.xlsx.xlsx"
+    },
+    "Source44": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            64
+        ],
+        "data_range": [
+            3,
+            26
+        ],
+        "selected_table": "Source44 - 34-Compte%20de%20patrimoine%20des%20AMC.xlsx.xlsx"
+    },
+    "Source45": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            69
+        ],
+        "data_range": [
+            3,
+            32
+        ],
+        "selected_table": "Source45 - 33-Compte+de+patrimoine+de+la+CDG.xlsx.xlsx"
+    },
+    "Source46": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            69
+        ],
+        "data_range": [
+            3,
+            26
+        ],
+        "selected_table": "Source46 - 32-Compte+de+patrimoine+des+banques+off-shores.xlsx.xlsx"
+    },
+    "Source47": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            77
+        ],
+        "data_range": [
+            3,
+            30
+        ],
+        "selected_table": "Source47 - 31-Compte%20de%20patrimoine%20des%20soci%C3%A9t%C3%A9s%20de%20financement.xlsx.xlsx"
+    },
+    "Source48": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            60
+        ],
+        "data_range": [
+            3,
+            56
+        ],
+        "selected_table": "Source48 - 29-Compte%20de%20patrimoine%20des%20entreprises%20d'assurances%20et%20de%20r%C3%A9assurance.xlsx.xlsx"
+    },
+    "Source49": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            3,
+            0,
+            73
+        ],
+        "data_range": [
+            4,
+            19
+        ],
+        "selected_table": "Source49 - 18-Ventilation%20crois%C3%A9e%20des%20cr%C3%A9dits%20bancaires%20par%20objet%20et%20par%20terme.xlsx.xlsx"
+    },
+    "Source50": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            73
+        ],
+        "data_range": [
+            3,
+            22
+        ],
+        "selected_table": "Source50 - 17-Ventilation%20des%20cr%C3%A9dits%20%C3%A0%20l'%C3%A9quipement%20par%20branche%20d'activit%C3%A9.xlsx.xlsx"
+    },
+    "Source51": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            73
+        ],
+        "data_range": [
+            3,
+            22
+        ],
+        "selected_table": "Source51 - 16-Ventilation%20des%20comptes%20d%C3%A9biteurs%20et%20cr%C3%A9dits%20de%20tr%C3%A9sorerie%20par%20branche%20d'activit%C3%A9.xlsx.xlsx"
+    },
+    "Source52": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            3,
+            0,
+            73
+        ],
+        "data_range": [
+            4,
+            33
+        ],
+        "selected_table": "Source52 - 15-Ventilation%20trimestrielle%20des%20cr%C3%A9dits%20par%20terme%20et%20par%20branche%20d'activit%C3%A9.xlsx.xlsx"
+    },
+    "Source53": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            159
+        ],
+        "data_range": [
+            3,
+            38
+        ],
+        "selected_table": "Source53 - 28-Compte%20de%20patrimoine%20des%20OPCVM%20diversifi%C3%A9s.xlsx.xlsx"
+    },
+    "Source54": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            159
+        ],
+        "data_range": [
+            3,
+            41
+        ],
+        "selected_table": "Source54 - 27-Compte%20de%20patrimoine%20des%20OPCVM%20Actions.xlsx.xlsx"
+    },
+    "Source55": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            159
+        ],
+        "data_range": [
+            3,
+            41
+        ],
+        "selected_table": "Source55 - 26-Compte%20de%20patrimoine%20des%20OPCVM%20obligations.xlsx.xlsx"
+    },
+    "Source56": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            3,
+            0,
+            242
+        ],
+        "data_range": [
+            4,
+            40
+        ],
+        "selected_table": "Source56 - 25-Compte%20de%20patrimoine%20des%20OPCVM%20autres%20que%20mon%C3%A9taires.xlsx.xlsx"
+    },
+    "Source57": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            3,
+            4,
+            0,
+            279
+        ],
+        "data_range": [
+            5,
+            29
+        ],
+        "selected_table": "Source57 - 24-ENGAGEMENTS%20ENVERS%20LES%20AUTRES%20SECTEURS%20RESIDENTS.xlsx.xlsx"
+    },
+    "Source58": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            3,
+            0,
+            279
+        ],
+        "data_range": [
+            4,
+            21
+        ],
+        "selected_table": "Source58 - 23-CREANCES%20DES%20ID%20SUR%20LES%20AUTRES%20SECTEURS%20RESIDENTS.xlsx.xlsx"
+    },
+    "Source59": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            279
+        ],
+        "data_range": [
+            3,
+            27
+        ],
+        "selected_table": "Source59 - 22-Position%20des%20ID%20vis-%C3%A0-vis%20des%20soci%C3%A9t%C3%A9s%20non%20%EF%AC%81nanci%C3%A8res%20priv%C3%A9es.xlsx.xlsx"
+    },
+    "Source60": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            279
+        ],
+        "data_range": [
+            3,
+            24
+        ],
+        "selected_table": "Source60 - 21-Position%20des%20ID%20vis-%C3%A0-vis%20du%20secteur%20public%20hors%20Administration%20Centrale.xlsx.xlsx"
+    },
+    "Source61": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            3,
+            0,
+            279
+        ],
+        "data_range": [
+            4,
+            28
+        ],
+        "selected_table": "Source61 - 20-%20Position%20des%20ID%20vis-%C3%A0-vis%20des%20autres%20soci%C3%A9t%C3%A9s%20%EF%AC%81nanci%C3%A8res.xlsx.xlsx"
+    },
+    "Source62": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            3,
+            0,
+            279
+        ],
+        "data_range": [
+            4,
+            17
+        ],
+        "selected_table": "Source62 - 19-Position%20des%20ID%20vis-%C3%A0-vis%20des%20secteurs%20institutionnels.xlsx.xlsx"
+    },
+    "Source63": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            279
+        ],
+        "data_range": [
+            3,
+            29
+        ],
+        "selected_table": "Source63 - 14-%20Ventilation%20crois%C3%A9e%20du%20cr%C3%A9dit%20bancaire%20par%20secteur%20%C3%A9conomique%20et%20par%20objet.xlsx.xlsx"
+    },
+    "Source64": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            279
+        ],
+        "data_range": [
+            3,
+            21
+        ],
+        "selected_table": "Source64 - 13-%20Ventilation%20du%20cr%C3%A9dit%20bancaire%20par%20secteur%20institutionnel.xlsx.xlsx"
+    },
+    "Source65": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            279
+        ],
+        "data_range": [
+            3,
+            18
+        ],
+        "selected_table": "Source65 - 12-%20Ventilation%20du%20cr%C3%A9dit%20bancaire%20par%20objet%20%C3%A9conomique.xlsx.xlsx"
+    },
+    "Source66": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            279
+        ],
+        "data_range": [
+            3,
+            19
+        ],
+        "selected_table": "Source66 - 11-CreancesSurL'Economie.xlsx.xlsx"
+    },
+    "Source67": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            3,
+            0,
+            279
+        ],
+        "data_range": [
+            4,
+            22
+        ],
+        "selected_table": "Source67 - 10-CreancesNettesAC.xlsx.xlsx"
+    },
+    "Source68": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            279
+        ],
+        "data_range": [
+            3,
+            32
+        ],
+        "selected_table": "Source68 - 9-AvoirsExterieursNets.xlsx.xlsx"
+    },
+    "Source69": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            279
+        ],
+        "data_range": [
+            4,
+            31
+        ],
+        "selected_table": "Source69 - 8-ContrepartiesDeM3.xlsx.xlsx"
+    },
+    "Source70": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            242
+        ],
+        "data_range": [
+            3,
+            28
+        ],
+        "selected_table": "Source70 - 7-AgregatsDePL.xlsx.xlsx"
+    },
+    "Source71": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            279
+        ],
+        "data_range": [
+            3,
+            26
+        ],
+        "selected_table": "Source71 - 6-AgregatsDeMonnaie.xlsx.xlsx"
+    },
+    "Source72": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            3,
+            0,
+            242
+        ],
+        "data_range": [
+            4,
+            31
+        ],
+        "selected_table": "Source72 - 5-Compte%20De%20Patrimoine%20Des%20OPCVM%20mon%C3%A9taires.xlsx.xlsx"
+    },
+    "Source73": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            77
+        ],
+        "data_range": [
+            3,
+            36
+        ],
+        "selected_table": "Source73 - 4-Compte%20De%20Patrimoine%20Des%20banques%20et%20fen%C3%A9tres%20participatives.xlsx.xlsx"
+    },
+    "Source74": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            279
+        ],
+        "data_range": [
+            3,
+            35
+        ],
+        "selected_table": "Source74 - 3-CompteDePatrimoineDesbanques.xlsx.xlsx"
+    },
+    "Source75": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            3,
+            0,
+            279
+        ],
+        "data_range": [
+            4,
+            37
+        ],
+        "selected_table": "Source75 - 2-CompteDePatrimoineDeSAutresInstitutionsDeDpts.xlsx.xlsx"
+    },
+    "Source76": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            279
+        ],
+        "data_range": [
+            3,
+            24
+        ],
+        "selected_table": "Source76 - 1-CompteDePatrimoineDeBAM.xlsx.xlsx"
+    },
+    "Source77": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            2,
+            3,
+            0,
+            13
+        ],
+        "data_range": [
+            4,
+            8
+        ],
+        "selected_table": "Source77 - Taux-debiteurs_16_04_2025-19_21.csv"
+    },
+    "Source78": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            1
+        ],
+        "data_range": [
+            1,
+            12
+        ],
+        "selected_table": "Source78 - BKAM s\u00e9rie IPSB 2022 (12).xlsx"
+    },
+    "Source79": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            1,
+            0,
+            9
+        ],
+        "data_range": [
+            2,
+            77
+        ],
+        "selected_table": "Source79 - BKAM S\u00e9ries IPAI T4 2024 (9).xlsx"
+    },
+    "Source80": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            2
+        ],
+        "data_range": [
+            1,
+            86
+        ],
+        "selected_table": "Source80 - BKAM Inflation et inflation sous jacente (8).xlsx"
+    },
+    "Source82": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            2,
+            0,
+            1454
+        ],
+        "data_range": [
+            1,
+            9
+        ],
+        "selected_table": "Source82 - 8162931.xlsx"
+    },
+    "Source81": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            3,
+            3,
+            0,
+            1
+        ],
+        "data_range": [
+            4,
+            4
+        ],
+        "selected_table": "Source81 - 8990852.pdf"
     }
 }

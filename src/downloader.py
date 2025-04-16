@@ -16,6 +16,7 @@ import queue
 import certifi
 from urllib.parse import urlparse
 import json
+from bs4 import BeautifulSoup
 
 from src.config import SOURCE_FILE, DEST_PATH, TEMP_DOWNLOAD_DIR, CHROMEDRIVER_PATH, year, month, day
 
@@ -45,7 +46,9 @@ def simple_dl(row, columns):
 
     try:
         os.makedirs(DEST_PATH, exist_ok=True)
-        response = requests.get(final_url)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
+        response = requests.get(final_url, headers=headers)
         response.raise_for_status()
 
         content_type = response.headers.get('Content-Type', '').lower()
@@ -165,7 +168,9 @@ def driver_dl(row, columns, driver):
                 logger.error(f"Aucune URL cible valide trouvée pour {url}")
                 return False, "Aucune URL cible valide trouvée"
 
-            response = requests.get(target_url)
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
+            response = requests.get(target_url, headers=headers)
             response.raise_for_status()
 
             content_type = response.headers.get('Content-Type', '').lower()
@@ -176,7 +181,8 @@ def driver_dl(row, columns, driver):
             if 'application/pdf' in content_type or downloaded_filename.lower().endswith('.pdf'):
                 if not downloaded_filename.lower().endswith('.pdf'):
                     downloaded_filename += '.pdf'
-            elif 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' in content_type or downloaded_filename.lower().endswith('.xlsx'):
+            elif 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' in content_type or downloaded_filename.lower().endswith(
+                    '.xlsx'):
                 if not downloaded_filename.lower().endswith('.xlsx'):
                     downloaded_filename += '.xlsx'
             elif 'text/csv' in content_type or downloaded_filename.lower().endswith('.csv'):
@@ -207,26 +213,72 @@ def driver_dl(row, columns, driver):
         return False, f"Erreur WebDriver : {str(e)}"
     except Exception as e:
         logger.error(f"Erreur inattendue : {type(e).__name__} - {str(e)}")
-        return False, f"Erreur inattendue : {str(e)}"
+        return False, str(e)
+
+def scrape_html_table_dl(row, columns, driver):
+    """Téléchargement de tous les tableaux HTML pour le type 3 avec Selenium."""
+    url = row[columns[2]]
+
+    if not url or not isinstance(url, str) or str(url).strip().lower() in ('nan', ''):
+        logger.error(f"URL invalide pour la source {row[columns[0]]}: {url}")
+        return False, "URL invalide"
+
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+        logger.info(f"URL ajustée : {url}")
+
+    try:
+        logger.info(f"Tentative de scraping de l'URL avec Selenium : {url}")
+        driver.get(url)
+        # Attendre que les tableaux soient chargés
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_all_elements_located((By.TAG_NAME, "table"))
+        )
+        # Pause supplémentaire pour les données dynamiques
+        time.sleep(3)
+        html_content = driver.page_source
+
+        soup = BeautifulSoup(html_content, 'html.parser')
+        tables = soup.find_all('datatable')
+        if not tables:
+            logger.error(f"Aucun tableau trouvé pour {url}")
+            return False, "Aucun tableau trouvé"
+
+        logger.info(f"Nombre de tableaux trouvés : {len(tables)}")
+        prefix = sanitize_filename(row[columns[0]])
+        os.makedirs(DEST_PATH, exist_ok=True)
+        success = False
+
+        # Sauvegarder chaque tableau dans un fichier séparé
+        for idx, table in enumerate(tables):
+            table_html = str(table)
+            logger.info(f"Tableau {idx} extrait : {table_html[:200]}...")
+            destination_path = os.path.join(DEST_PATH, f"{prefix} - table_{idx}.html")
+            with open(destination_path, "w", encoding="utf-8") as f:
+                f.write(table_html)
+            logger.info(f"Tableau {idx} sauvegardé : {destination_path}")
+            success = True
+
+        if success:
+            return True, None
+        else:
+            return False, "Aucun tableau sauvegardé"
+    except TimeoutException:
+        logger.error(f"Timeout : Aucun tableau trouvé dans les 20 secondes pour {url}")
+        return False, "Timeout : Tableau non trouvé"
+    except Exception as e:
+        logger.error(f"Erreur inattendue : {type(e).__name__} - {str(e)}")
+        return False, str(e)
 
 def get_sources():
-    df = pd.read_excel(SOURCE_FILE, sheet_name="Source sans doub", dtype=str)
+    df = pd.read_excel(SOURCE_FILE, sheet_name="Source sans doub", dtype=str, engine="openpyxl").fillna('')
     sources = df[df.columns[0]].tolist()
     logger.info(f"Sources trouvées : {sources}")
     return sources
 
 def download_files(sources, status_queue):
-    """
-    Exécute le téléchargement des fichiers pour les sources données et envoie les mises à jour de statut via une file d’attente.
-
-    Args:
-        sources (list): Liste des sources à télécharger.
-        status_queue (queue.Queue): File d’attente pour envoyer les mises à jour de statut.
-
-    Returns:
-        tuple: (nombre de succès, total, liste des erreurs).
-    """
-    df = pd.read_excel(SOURCE_FILE, sheet_name="Source sans doub", dtype=str)
+    """Exécute le téléchargement des fichiers pour les sources données."""
+    df = pd.read_excel(SOURCE_FILE, sheet_name="Source sans doub", dtype=str).fillna('')
     columns = df.columns.tolist()
     df_to_download = df[df[columns[0]].isin(sources)]
 
@@ -244,11 +296,12 @@ def download_files(sources, status_queue):
     try:
         for index, row in df_to_download.iterrows():
             source = row[columns[0]]
-            if row[columns[1]] != "1" and row[columns[1]] != "2":
+            extraction_type = row[columns[1]]
+            if extraction_type not in ["1", "2", "3"]:
                 status_queue.put((source, "🚫 Ignoré"))
             else:
                 status_queue.put((source, "⏳ En cours"))
-                if row[columns[1]] == "1":
+                if extraction_type == "1":
                     logger.info(f"Démarrage extraction {source} - {row[columns[2]]}")
                     success, error = simple_dl(row, columns)
                     if success:
@@ -258,9 +311,19 @@ def download_files(sources, status_queue):
                         errors.append((source, error))
                         status_queue.put((source, "❌ Échec"))
                     logger.info(f"Fin extraction {source} - {row[columns[2]]}")
-                elif row[columns[1]] == "2":
+                elif extraction_type == "2":
                     logger.info(f"Démarrage extraction {source} - {row[columns[2]]}")
                     success, error = driver_dl(row, columns, driver)
+                    if success:
+                        successes += 1
+                        status_queue.put((source, "✅ Succès"))
+                    else:
+                        errors.append((source, error))
+                        status_queue.put((source, "❌ Échec"))
+                    logger.info(f"Fin extraction {source} - {row[columns[2]]}")
+                elif extraction_type == "3":
+                    logger.info(f"Démarrage extraction {source} - {row[columns[2]]}")
+                    success, error = scrape_html_table_dl(row, columns, driver)
                     if success:
                         successes += 1
                         status_queue.put((source, "✅ Succès"))

@@ -6,7 +6,7 @@ import time
 import concurrent.futures
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from src.downloader import download_files, simple_dl, driver_dl
+from src.downloader import download_files, simple_dl, driver_dl, scrape_html_table_dl
 from src.utils import load_excel_data
 from src.config import CHROMEDRIVER_PATH
 
@@ -68,9 +68,10 @@ def run_retry_download(sources, status_queue):
     try:
         for index, row in df_to_retry.iterrows():
             source = row[columns[0]]
+            extraction_type = row[columns[1]]
             status_queue.put((source, "⏳ En cours"))
 
-            if row[columns[1]] == "1":
+            if extraction_type == "1":
                 success, error = simple_dl(row, columns)
                 if success:
                     successes += 1
@@ -78,8 +79,16 @@ def run_retry_download(sources, status_queue):
                 else:
                     errors.append((source, error))
                     status_queue.put((source, "❌ Échec"))
-            elif row[columns[1]] == "2":
+            elif extraction_type == "2":
                 success, error = driver_dl(row, columns, driver)
+                if success:
+                    successes += 1
+                    status_queue.put((source, "✅ Succès"))
+                else:
+                    errors.append((source, error))
+                    status_queue.put((source, "❌ Échec"))
+            elif extraction_type == "3":
+                success, error = scrape_html_table_dl(row, columns, driver)
                 if success:
                     successes += 1
                     status_queue.put((source, "✅ Succès"))
