@@ -1,21 +1,17 @@
 # src/utils.py
 import pandas as pd
-import concurrent.futures
 import re
 from datetime import datetime
-from src.config import SOURCE_FILE
 from sqlalchemy import create_engine, text
-
-def run_in_thread(func, *args, **kwargs):
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future = executor.submit(func, *args, **kwargs)
-        return future.result()
+from src.config import SOURCE_FILE
 
 def load_excel_data():
+    """Charge les données depuis le fichier Excel."""
     df = pd.read_excel(SOURCE_FILE, sheet_name="Source sans doub", dtype=str)
     return df
 
 def save_to_excel(df):
+    """Sauvegarde le DataFrame dans le fichier Excel."""
     with pd.ExcelWriter(SOURCE_FILE, mode='a', if_sheet_exists='replace') as writer:
         df.to_excel(writer, sheet_name="Source sans doub", index=False)
 
@@ -59,16 +55,16 @@ def delete_existing_data_for_date(engine, table_name, extraction_date):
                 raise  # Propager les autres erreurs
 
 def insert_dataframe_to_sql(df, table_name, db_path):
-    """Insère un DataFrame dans une table SQL avec date/heure d'extraction."""
+    """Insère un DataFrame dans une table SQL avec suppression des données existantes pour la même date."""
     clean_columns = [clean_column_name(col) for col in df.columns]
     df_clean = df.copy()
     df_clean.columns = clean_columns
 
-    current_time = datetime.now()
-    df_clean['extraction_datetime'] = current_time
-
     engine = create_engine(f"sqlite:///{db_path}")
-
-    delete_existing_data_for_date(engine, table_name, current_time)
+    if 'extraction_datetime' in df_clean.columns:
+        max_date = pd.to_datetime(df_clean['extraction_datetime']).max()
+        delete_existing_data_for_date(engine, table_name, max_date)
+    else:
+        delete_existing_data_for_date(engine, table_name, datetime.now())
 
     df_clean.to_sql(table_name, engine, if_exists='append', index=False)

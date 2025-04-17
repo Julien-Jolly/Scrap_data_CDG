@@ -239,7 +239,7 @@ def scrape_html_table_dl(row, columns, driver):
         html_content = driver.page_source
 
         soup = BeautifulSoup(html_content, 'html.parser')
-        tables = soup.find_all('datatable')
+        tables = soup.find_all('table')
         if not tables:
             logger.error(f"Aucun tableau trouvé pour {url}")
             return False, "Aucun tableau trouvé"
