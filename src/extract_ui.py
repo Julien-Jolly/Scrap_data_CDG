@@ -3,12 +3,12 @@ import streamlit as st
 import pandas as pd
 import os
 from datetime import datetime
-from src.parser import get_downloaded_files, parse_file, extract_data, get_source_settings, update_source_settings
+from src.parser import get_downloaded_files, parse_file, extract_data, get_source_settings, update_source_settings, load_settings
 from src.utils import load_excel_data, make_unique_titles
 from src.config import get_download_dir
 
 def extract_section():
-    """Affiche la section 'Analyse et Extraction des Données' avec sélection de date."""
+    """Affiche la section 'Analyse et Extraction des Données' avec sélection de date et tableau des sources non paramétrées."""
     st.header("Analyse et Extraction des Données")
 
     # Charger les données Excel
@@ -185,3 +185,17 @@ def extract_section():
                             st.error(f"Erreur inattendue : {e}. Contactez le support technique.")
             else:
                 st.error(f"Aucune donnée extraite pour la page {page_to_extract}. Vérifiez le fichier.")
+
+    # Tableau des sources non paramétrées
+    st.write("### Sources non paramétrées")
+    settings = load_settings()
+    parametrized_sources = list(settings.keys())
+    non_parametrized_sources = [source for source in all_sources if source not in parametrized_sources]
+
+    if not non_parametrized_sources:
+        st.info("Toutes les sources sont paramétrées.")
+    else:
+        # Créer un DataFrame pour les sources non paramétrées
+        non_parametrized_data = df[df[columns[0]].isin(non_parametrized_sources)][[columns[0], columns[1], columns[5]]]
+        non_parametrized_data.columns = ["Source", "Type d'extraction", "Commentaires"]
+        st.dataframe(non_parametrized_data, use_container_width=True)
