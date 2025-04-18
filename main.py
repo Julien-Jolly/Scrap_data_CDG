@@ -1,10 +1,9 @@
 # main.py
 import streamlit as st
 from src.downloader import get_sources
-from src.download_ui import download_section
 from src.extract_ui import extract_section
 from src.manage_sources_ui import manage_sources_section
-from src.list_sources_ui import list_sources_section  # Importer la nouvelle section
+from src.list_sources_ui import list_sources_section
 
 def main():
     # Configuration de la page
@@ -15,21 +14,20 @@ def main():
     option = st.sidebar.selectbox("Choisir une action", [
         "Téléchargement des fichiers",
         "Analyse et Extraction",
-        "Liste des Sources et DataFrames"  # Nouvelle option
+        "Traitement et Insertion dans la Base de Données"
     ])
 
     # Corps de la page
     st.title("Téléchargement de Fichiers")
 
-    # Charger les sources pour la section "Téléchargement des fichiers"
+    # Charger les sources
     sources = get_sources()
 
     if option == "Téléchargement des fichiers":
-        download_section(sources)
-        manage_sources_section()
+        manage_sources_section(sources)
     elif option == "Analyse et Extraction":
         extract_section()
-    elif option == "Liste des Sources et DataFrames":
+    elif option == "Traitement et Insertion dans la Base de Données":
         list_sources_section()
 
 if __name__ == "__main__":

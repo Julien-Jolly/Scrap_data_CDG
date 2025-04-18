@@ -8,17 +8,21 @@ import re
 import csv
 from bs4 import BeautifulSoup
 
-from src.config import DOWNLOAD_DIR, SETTINGS_FILE
+from src.config import SETTINGS_FILE, get_download_dir
 
-def get_downloaded_files():
+def get_downloaded_files(download_dir=None):
     """Retourne une liste des fichiers téléchargés avec leur source."""
+    if download_dir is None:
+        download_dir = get_download_dir()  # Utiliser la date du jour par défaut
     files = {}
-    for file_name in os.listdir(DOWNLOAD_DIR):
-        if os.path.isfile(os.path.join(DOWNLOAD_DIR, file_name)):
+    if not os.path.exists(download_dir):
+        return files
+    for file_name in os.listdir(download_dir):
+        if os.path.isfile(os.path.join(download_dir, file_name)):
             source = file_name.split(" - ")[0]
             if source not in files:
                 files[source] = []
-            files[source].append(os.path.join(DOWNLOAD_DIR, file_name))
+            files[source].append(os.path.join(download_dir, file_name))
     for source in files:
         files[source].sort()
     return files

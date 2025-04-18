@@ -2,35 +2,59 @@
 import streamlit as st
 import pandas as pd
 import os
+from datetime import datetime
 from src.parser import get_downloaded_files, parse_file, extract_data, get_source_settings, update_source_settings
 from src.utils import load_excel_data, make_unique_titles
+from src.config import get_download_dir
 
 def extract_section():
-    """Affiche la section 'Analyse et Extraction'."""
+    """Affiche la section 'Analyse et Extraction des Données' avec sélection de date."""
     st.header("Analyse et Extraction des Données")
 
-    downloaded_files = get_downloaded_files()
+    # Charger les données Excel
+    df = load_excel_data()
+    columns = df.columns.tolist()
 
-    if not downloaded_files:
-        st.warning("Aucun fichier téléchargé trouvé.")
+    # Récupérer toutes les sources depuis le fichier Excel
+    all_sources = df[columns[0]].unique().tolist()
+
+    if not all_sources:
+        st.warning("Aucune source trouvée dans le fichier Excel.")
         return
 
-    selected_source = st.selectbox("Sélectionner une source", list(downloaded_files.keys()))
-    file_paths = downloaded_files[selected_source]
+    # Sélectionner une source
+    selected_source = st.selectbox("Sélectionner une source", all_sources)
 
+    # Récupérer le nom de la source (colonne 7)
+    source_name = df[df[columns[0]] == selected_source][columns[7]].iloc[0] if len(df[df[columns[0]] == selected_source]) > 0 else selected_source
+
+    # Sélecteur de date
+    st.write(f"**Nom de la source :** {source_name}")
+    default_date = datetime.now().strftime("%m-%d")
+    available_dates = [d for d in os.listdir(os.path.join(os.path.dirname(__file__), "..", "Downloads"))
+                      if os.path.isdir(os.path.join(os.path.dirname(__file__), "..", "Downloads", d))]
+    selected_date = st.selectbox("Date de l'extraction", available_dates, index=available_dates.index(default_date) if default_date in available_dates else 0)
+
+    # Charger les fichiers pour la date sélectionnée
+    download_dir = get_download_dir(selected_date)
+    downloaded_files = get_downloaded_files(download_dir)
+
+    # Vérifier si la source sélectionnée a des fichiers pour la date
+    if selected_source not in downloaded_files:
+        st.warning(f"Aucun fichier trouvé pour la source {source_name} à la date {selected_date}.")
+        return
+
+    file_paths = downloaded_files[selected_source]
     previous_source = st.session_state.get("last_source")
     st.session_state["last_source"] = selected_source
 
-    df = load_excel_data()
-    columns = df.columns.tolist()
-    source_name = df[df[columns[0]] == selected_source][columns[7]].iloc[0] if len(df[df[columns[0]] == selected_source]) > 0 else selected_source
-
+    # Charger les paramètres de la source
     settings = get_source_settings(selected_source)
     default_separator = settings.get("separator", ";")
     default_page = settings.get("page", 0)
     default_title_range = settings.get("title_range", [0, 0, 0, 5])
     default_data_range = settings.get("data_range", [1, 10])
-    default_selected_table = settings.get("selected_table")  # Charger la table sauvegardée
+    default_selected_table = settings.get("selected_table")
 
     default_title_start_row = default_title_range[0]
     default_title_end_row = default_title_range[1]
@@ -42,10 +66,10 @@ def extract_section():
     if "temp_data_row_end" not in st.session_state or previous_source != selected_source:
         st.session_state["temp_data_row_end"] = default_data_range[1]
 
-    # Charger tous les tableaux pour la source
+    # Charger les tableaux
+    cache_key = f"{selected_source}_{selected_date}_{default_page}"
     if ("raw_tables" not in st.session_state or
-            previous_source != selected_source or
-            st.session_state.get("last_page") != default_page):
+            st.session_state.get("last_cache_key") != cache_key):
         raw_tables = {}
         for file_path in file_paths:
             try:
@@ -56,7 +80,7 @@ def extract_section():
             except Exception as e:
                 st.error(f"Erreur de parsing pour {file_path}: {e}")
         st.session_state["raw_tables"] = raw_tables
-        st.session_state["last_page"] = default_page
+        st.session_state["last_cache_key"] = cache_key
     else:
         raw_tables = st.session_state["raw_tables"]
 
@@ -64,11 +88,9 @@ def extract_section():
 
     with col1:
         st.write("### Contenu brut")
-        st.write(f"**Nom de la source :** {source_name}")
         if not raw_tables:
             st.warning(f"Aucun contenu extrait. Vérifiez les fichiers ou les paramètres.")
         else:
-            # Sélection du tableau avec valeur par défaut
             selected_table = st.selectbox(
                 "Sélectionner un tableau",
                 list(raw_tables.keys()),
@@ -88,33 +110,32 @@ def extract_section():
         separator = st.text_input("Séparateur (pour CSV)", value=default_separator)
         page_to_extract = st.number_input("Page à extraire (PDF uniquement)", min_value=0, value=default_page, step=1)
 
-        # Paramètres des plages
         st.write("#### Plage des titres")
         raw_data_defined = raw_data is not None and len(raw_data) > 0
         max_rows = len(raw_data) if raw_data_defined else 1
         max_cols = max(len(row) for row in raw_data) if raw_data_defined else 1
 
         title_row_start = st.number_input("Ligne début titres", min_value=0, max_value=max_rows - 1,
-                                          value=min(default_title_start_row, max_rows - 1))
+                                         value=min(default_title_start_row, max_rows - 1))
         default_title_end_row_adjusted = max(title_row_start, default_title_end_row)
         title_row_end = st.number_input("Ligne fin titres", min_value=title_row_start, max_value=max_rows - 1,
-                                        value=min(default_title_end_row_adjusted, max_rows - 1))
+                                       value=min(default_title_end_row_adjusted, max_rows - 1))
         title_col_start = st.number_input("Colonne début titres", min_value=0, max_value=max_cols - 1,
-                                          value=min(default_title_col_start, max_cols - 1))
+                                         value=min(default_title_col_start, max_cols - 1))
         default_title_col_end_adjusted = max(title_col_start, default_title_col_end)
         title_col_end = st.number_input("Colonne fin titres", min_value=title_col_start, max_value=max_cols - 1,
-                                        value=min(default_title_col_end_adjusted, max_cols - 1))
+                                       value=min(default_title_col_end_adjusted, max_cols - 1))
 
         st.write("#### Plage des données")
         data_row_start = st.number_input("Ligne début données", min_value=0, max_value=max_rows - 1,
-                                         value=min(st.session_state["temp_data_row_start"], max_rows - 1),
-                                         key="data_row_start_input")
+                                        value=min(st.session_state["temp_data_row_start"], max_rows - 1),
+                                        key="data_row_start_input")
         st.session_state["temp_data_row_start"] = data_row_start
 
         default_data_row_end = max(data_row_start, st.session_state["temp_data_row_end"])
         data_row_end = st.number_input("Ligne fin données", min_value=data_row_start, max_value=max_rows - 1,
-                                       value=min(default_data_row_end, max_rows - 1),
-                                       key="data_row_end_input")
+                                      value=min(default_data_row_end, max_rows - 1),
+                                      key="data_row_end_input")
         st.session_state["temp_data_row_end"] = data_row_end
 
         if st.button("Mettre à jour le contenu"):
@@ -128,8 +149,8 @@ def extract_section():
                 except Exception as e:
                     st.error(f"Erreur de parsing pour {file_path}: {e}")
             st.session_state["raw_tables"] = raw_tables
+            st.session_state["last_cache_key"] = f"{selected_source}_{selected_date}_{page_to_extract}"
             st.session_state["last_page"] = page_to_extract
-            st.session_state["last_source"] = selected_source
             st.success("Contenu mis à jour avec succès.")
             st.rerun()
 
@@ -140,23 +161,18 @@ def extract_section():
 
             if raw_data:
                 titles, data = extract_data(raw_data, title_range, data_range)
-
-                # Vérifier si les données et titres sont valides
                 if not titles:
                     st.error("Aucun titre extrait. Vérifiez la plage des titres.")
                 elif not data:
                     st.error("Aucune donnée extraite. Vérifiez la plage des données.")
                 else:
-                    # Vérifier la compatibilité entre titres et données
                     data_col_count = max(len(row) for row in data) if data else 0
                     if len(titles) != data_col_count:
                         st.error(
                             f"Les titres ({len(titles)} colonnes) ne correspondent pas aux données ({data_col_count} colonnes). Ajustez les plages.")
                     else:
-                        # Rendre les titres uniques
                         unique_titles = make_unique_titles(titles)
                         try:
-                            # Créer le DataFrame
                             df_extracted = pd.DataFrame(data, columns=unique_titles)
                             st.write("### Titres extraits")
                             st.dataframe(pd.DataFrame([unique_titles]), use_container_width=True)

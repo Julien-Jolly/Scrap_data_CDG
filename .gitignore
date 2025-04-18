@@ -1,4 +1,6 @@
 .idea/*
 .venv/*
 temp.py
-Downloads/
+Downloads/*
+database.db
+*.log

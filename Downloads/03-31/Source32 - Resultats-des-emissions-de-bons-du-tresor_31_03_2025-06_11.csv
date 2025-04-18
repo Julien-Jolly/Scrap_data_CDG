@@ -1,9 +1,0 @@
-"Résultats des émissions de bons du Trésor"
-"Service API : Marché des adjudications des bons du Trésor"
-"Date de règlement";Maturités;Caractéristiques;"Montant proposé";"Taux/Prix Min";"Taux/Prix Max";"Montant adjugé";"Taux ou prix limite";"Taux ou prix moyen pondéré"
-03/04/2025;"26 semaines";02/10/2025,;220,00;"2,18 %";"2,25 %";100,00;"2,18 %";"2,18 %"
-03/04/2025;"2 ans";19/07/2027,2.65%;450,00;"100,48 %";"100,53 %";-;-;-
-03/04/2025;"10 ans";18/06/2035,3.55%;518,80;"104,90 %";"105,67 %";150,00;"105,49 %";"105,50 %"
-03/04/2025;"20 ans";14/08/2045,4.00%;"2 341,50";"105,37 %";"106,40 %";200,00;"106,40 %";"106,40 %"
-03/04/2025;"30 ans";19/04/2055,4.50%;"3 171,50";"108,51 %";"111,71 %";400,00;"110,59 %";"111,15 %"
-Total;;;"6 701,80";;;850,00;;
