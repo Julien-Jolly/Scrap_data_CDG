@@ -17,8 +17,9 @@ import certifi
 from urllib.parse import urlparse
 import json
 from bs4 import BeautifulSoup
+from webdriver_manager.chrome import ChromeDriverManager
 
-from src.config import SOURCE_FILE, DEST_PATH, TEMP_DOWNLOAD_DIR, CHROMEDRIVER_PATH, year, month, day
+from src.config import SOURCE_FILE, DEST_PATH, TEMP_DOWNLOAD_DIR, year, month, day
 
 logging.basicConfig(
     level=logging.INFO,
@@ -290,7 +291,8 @@ def download_files(sources, status_queue):
     options.add_argument("--headless")
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-blink-features=AutomationControlled")
-    service = Service(CHROMEDRIVER_PATH)
+    # Utiliser ChromeDriverManager pour gérer Chromedriver automatiquement
+    service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
 
     try:

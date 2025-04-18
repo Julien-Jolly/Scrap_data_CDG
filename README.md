@@ -37,23 +37,17 @@ Les bibliothèques nécessaires sont listées dans `requirements.txt`. Les princ
    cd Scrap_data_CDG
 
 Créer un environnement virtuel (recommandé) :
-bash
 
 python -m venv venv
 .\venv\Scripts\activate  # Windows
 
 Installer les dépendances :
-bash
 
 pip install -r requirements.txt
 
-Installer Chromedriver :
-Téléchargez la version de Chromedriver correspondant à votre version de Google Chrome depuis ici.
-
-Placez chromedriver.exe dans C:/chromedriver/ (ou mettez à jour CHROMEDRIVER_PATH dans src/config.py si nécessaire).
 
 Configurer le fichier Excel :
-Assurez-vous que le fichier Matrice KPI_Gestion_V2_03_01.xlsx est disponible à l'emplacement C:/Users/Julien/OneDrive/Documents/CDG Capital Gestion/.
+Assurez-vous que le fichier matrice_source.xlsx est disponible à l'emplacement "../Scrap_data_CDG/matrice sources.xlsx"
 
 Ce fichier doit contenir les colonnes suivantes :
 Source (identifiant unique)
@@ -74,79 +68,127 @@ Nom de la source (colonne 7)
 
 Structure du Projet
 
-Scrap_data_CDG/
-├── Downloads/                # Dossiers de téléchargement datés (ex. 04-18)
-├── src/                      # Code source
-│   ├── config.py             # Configuration (chemins, constantes)
-│   ├── downloader.py         # Logique de téléchargement (HTTP, Selenium, HTML)
-│   ├── parser.py             # Parsing des fichiers (PDF, Excel, CSV, JSON, HTML)
-│   ├── utils.py              # Fonctions utilitaires (lecture/écriture Excel)
-│   ├── manage_sources_ui.py  # Page 1 : Gestion des sources
-│   ├── extract_ui.py         # Page 2 : Analyse et extraction
-│   └── <fichier_traitement>  # Page 3 : Traitement et insertion (non précisé)
-├── main.py                   # Point d'entrée Streamlit
-├── requirements.txt          # Dépendances Python
-├── source_settings.json      # Paramètres d'extraction sauvegardés
-└── README.md                 # Ce fichier
+/Scrap_data_cdg /
+├── /.venv/
+├── /Downloads/
+├── /src/
+│   ├── __init__.py
+│   └── config.py
+│   └── download_ui.py
+│   └── downloader.py
+│   └── extract_ui.py
+│   └── list_sources_ui.py
+│   └── manage_sources_ui.py
+│   └── parser.py
+│   └── utils.py
+├── .gitignore
+├── main.py              
+├── cli.py              
+└── requirements.txt     
+└── source_settings.json  
 
 Utilisation
+Via l'interface Streamlit
 Lancer l'application :
 bash
 
 streamlit run main.py
 
-Cela ouvre l'interface dans votre navigateur par défaut (généralement http://localhost:8501).
+Cela ouvre l'interface dans votre navigateur par défaut (http://localhost:8501). La première exécution peut télécharger Chromedriver automatiquement via webdriver-manager.
 
 Page 1 : Gestion des Sources :
 Visualisez et modifiez les sources dans un tableau éditable.
 
 Sauvegardez les modifications dans le fichier Excel.
 
-Lancez le téléchargement des fichiers pour toutes les sources ou relancez les téléchargements en erreur.
+Cliquez sur "Télécharger tous les fichiers" ou "Relancer les téléchargements en erreur" pour lancer les téléchargements.
 
 Les fichiers sont sauvegardés dans Downloads/MM-DD (par exemple, Downloads/04-18).
 
 Page 2 : Analyse et Extraction des Données :
-Sélectionnez une source parmi toutes celles définies dans le fichier Excel.
-
-Choisissez une date d'extraction (par défaut : date du jour).
-
-Si aucune donnée n'est disponible pour la source à la date sélectionnée, un message d'avertissement s'affiche.
+Sélectionnez une source et une date d'extraction (par défaut : date du jour).
 
 Parsez les fichiers téléchargés (PDF, Excel, CSV, JSON, HTML) et visualisez les tableaux dans "Contenu brut".
 
-Paramétrez les plages de titres et de données, puis sauvegardez les paramètres dans source_settings.json.
+Paramétrez les plages de titres et de données, puis sauvegardez dans source_settings.json.
 
 Visualisez les données extraites dans "Titres extraits" et "Données extraites".
 
+Un tableau en bas de page liste les sources non paramétrées avec leur type d'extraction et commentaires.
+
 Page 3 : Traitement et Insertion dans la Base de Données :
-Cette page est fonctionnelle et permet l'insertion des données extraites dans une base de données (détails non fournis).
+Cette page permet l'insertion des données extraites dans une base de données SQLite (fonctionnelle, détails non fournis).
 
-Fonctionnalités principales
-Téléchargement automatisé :
-Supporte les téléchargements HTTP (requests), via Selenium (chromedriver), et l'extraction de tableaux HTML.
+Via la ligne de commande
+Téléchargement et traitement :
+Télécharge les fichiers pour toutes les sources, traite les données, et insère dans la base de données SQLite.
 
-Gestion des erreurs avec possibilité de relance des téléchargements échoués.
+Vérifie les changements de types ou de nature par rapport à la veille, journalisés dans logs/cli_YYYYMMDD_HHMMSS.log.
 
-Extraction flexible :
-Parsing des fichiers PDF (via tabula-py et pdfplumber), Excel, CSV, JSON, et HTML.
+Génère un fichier de résumé dans logs/summary_YYYYMMDD_HHMMSS.log avec cinq tableaux :
+Sources téléchargées
 
-Paramétrage des plages de titres et de données pour une extraction personnalisée.
+Sources non téléchargées en erreur
 
-Interface utilisateur :
-Interface Streamlit intuitive avec tableaux éditables et mise à jour en temps réel.
+Sources traitées
 
-Sélecteur de date pour charger les fichiers d'une date spécifique.
+Sources traitées insérées dans la BDD
 
-Sauvegarde des paramètres :
-Les configurations d'extraction sont sauvegardées dans source_settings.json.
+Sources traitées non insérées dans la BDD en erreur
+
+bash
+
+python cli.py download_and_process --db_path database.db
+
+Traitement seul :
+Traite les fichiers déjà téléchargés (dans Downloads/MM-DD) et insère dans la base de données SQLite.
+
+Vérifie les changements de types ou de nature, journalisés dans logs/cli_YYYYMMDD_HHMMSS.log.
+
+Génère le fichier de résumé dans logs/summary_YYYYMMDD_HHMMSS.log.
+bash
+
+python cli.py process_only --db_path database.db
 
 Problèmes connus
-Conflits de fichiers existants :
-Lors du téléchargement, si un fichier existe déjà dans le répertoire de destination, une erreur [WinError 183] peut survenir. Une relance des téléchargements en erreur résout généralement ce problème.
+Connexion Internet : Requise pour télécharger Chromedriver via webdriver-manager lors du premier lancement.
 
-Dépendance à Chromedriver :
-Assurez-vous que la version de Chromedriver correspond à celle de votre navigateur Chrome.
+Fichier Excel : Si SOURCE_FILE est incorrect, l'application ne chargera pas les sources. Vérifiez le chemin dans config.py.
+
+Permissions : Assurez-vous d'avoir les droits d'écriture dans Downloads/MM-DD, logs/, et le dossier de cache de webdriver-manager (~/.wdm).
+
+Fichiers non téléchargés : La commande process_only échouera si aucun fichier n'est présent dans Downloads/MM-DD. Exécutez d'abord download_and_process.
+
+Sources non paramétrées : Si une source manque de paramètres dans source_settings.json, elle peut être ignorée. Consultez le tableau des sources non paramétrées dans l'interface.
+
+Données de la veille : Les vérifications de types et de nature nécessitent des données pour la veille dans la base SQLite. Si aucune donnée n'est disponible, un message informatif est affiché.
+
+Fichier source_settings.json : Doit être à la racine du projet (Scrap_data_CDG/) pour éviter les erreurs de chemin.
+
+Dépendances
+Python 3.8+
+
+Google Chrome
+
+Bibliothèques listées dans requirements.txt :
+
+streamlit==1.31.0
+pandas==2.2.0
+openpyxl==3.1.2
+selenium==4.17.2
+requests==2.31.0
+tabula-py==2.9.0
+pdfplumber==0.10.3
+beautifulsoup4==4.12.2
+webdriver-manager==4.0.2
+sqlalchemy==2.0.23
+
+Notes
+Les anomalies (changements de types ou de nature) sont informatives et n'empêchent pas l'insertion des données.
+
+Le fichier logs/summary_YYYYMMDD_HHMMSS.log fournit un résumé clair des opérations CLI pour le suivi.
+
+
 
 Contribution
 Pour contribuer au projet :

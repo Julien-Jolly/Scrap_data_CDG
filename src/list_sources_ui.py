@@ -6,15 +6,16 @@ import time
 import json
 from datetime import datetime
 from src.parser import get_downloaded_files, parse_file, extract_data, get_source_settings
-from src.utils import load_excel_data, make_unique_titles, insert_dataframe_to_sql
+from src.utils import load_excel_data, make_unique_titles, insert_dataframe_to_sql, check_cell_changes, load_previous_data
 from src.config import DOWNLOAD_DIR
 
 def list_sources_section():
-    """Affiche la section 'Traitement et Insertion dans la Base de Données' avec suivi des insertions."""
+    """Affiche la section 'Traitement et Insertion dans la Base de Données' avec suivi des insertions et contrôles."""
     st.header("Traitement et Insertion dans la Base de Données")
-    st.write("Lancez l'insertion des données dans la base de données et suivez les succès et échecs.")
+    st.write("Lancez l'insertion des données dans la base de données, suivez les succès et échecs, et consultez les anomalies de types ou de nature des valeurs.")
 
     # Charger les fichiers téléchargés
+    date_str = datetime.now().strftime("%m-%d")
     downloaded_files = get_downloaded_files()
     if not downloaded_files:
         st.warning("Aucun fichier téléchargé trouvé. Veuillez lancer le téléchargement dans 'Téléchargement des fichiers'.")
@@ -36,7 +37,7 @@ def list_sources_section():
             if file_paths:
                 selected_table = max(file_paths, key=os.path.getmtime)
                 settings["selected_table"] = os.path.basename(selected_table)
-                with open("C:/Users/Julien/PycharmProjects/PythonProject/Scrap_data_CDG/source_settings.json", "r+") as f:
+                with open("source_settings.json", "r+") as f:
                     all_settings = json.load(f)
                     all_settings[source] = settings
                     f.seek(0)
@@ -69,6 +70,9 @@ def list_sources_section():
             st.subheader("Erreurs d'insertion")
             errors_placeholder = st.empty()
             errors_data = []
+
+        # Tableau des anomalies (stockage pour affichage en bas)
+        anomalies_data = []
 
         # Lancer l'insertion
         with st.spinner("Insertion en cours..."):
@@ -121,14 +125,22 @@ def list_sources_section():
                     unique_titles = make_unique_titles(titles)
                     data_with_datetime = []
                     for row in data:
-                        # Utiliser la date de téléchargement pour extraction_datetime
                         data_with_datetime.append([download_datetime] + row)
                         time.sleep(0.001)  # Conserver le léger décalage pour éviter des doublons exacts
                     unique_titles_with_datetime = ['extraction_datetime'] + unique_titles
-                    df = pd.DataFrame(data_with_datetime, columns=unique_titles_with_datetime)
+                    df_current = pd.DataFrame(data_with_datetime, columns=unique_titles_with_datetime)
 
+                    # Charger les données de la veille
+                    df_previous = load_previous_data(source, "database.db", date_str)
+
+                    # Vérifier les changements de types ou de nature
+                    cell_anomalies = check_cell_changes(df_current, df_previous, source_name)
+                    for anomaly in cell_anomalies:
+                        anomalies_data.append({"Source": source_name, "Anomalie": anomaly})
+
+                    # Insérer les données dans la base
                     table_name = source.replace(" ", "_").replace("-", "_").lower()
-                    insert_dataframe_to_sql(df, table_name, "database.db")
+                    insert_dataframe_to_sql(df_current, table_name, "database.db")
 
                     status_data[-1]["Statut"] = "Succès"
                     status_placeholder.dataframe(pd.DataFrame(status_data), use_container_width=True)
@@ -138,6 +150,15 @@ def list_sources_section():
                     status_placeholder.dataframe(pd.DataFrame(status_data), use_container_width=True)
                     errors_data.append({"Source": source_name, "Erreur": str(e)})
                     errors_placeholder.dataframe(pd.DataFrame(errors_data), use_container_width=True)
+                    anomalies_data.append({"Source": source_name, "Anomalie": f"Erreur lors du traitement : {str(e)}"})
+
+        # Afficher le tableau des anomalies
+        if anomalies_data:
+            st.subheader("Tableau des anomalies détectées")
+            df_anomalies = pd.DataFrame(anomalies_data)
+            st.dataframe(df_anomalies, use_container_width=True)
+        else:
+            st.info("Aucune anomalie détectée.")
 
         if not errors_data:
             st.success("Insertion terminée pour toutes les sources !")
@@ -192,12 +213,24 @@ def list_sources_section():
             unique_titles = make_unique_titles(titles)
             data_with_datetime = []
             for row in data:
-                # Utiliser la date de téléchargement pour extraction_datetime
                 data_with_datetime.append([download_datetime] + row)
                 time.sleep(0.001)
             unique_titles_with_datetime = ['extraction_datetime'] + unique_titles
             df = pd.DataFrame(data_with_datetime, columns=unique_titles_with_datetime)
 
+            # Charger les données de la veille pour comparaison
+            df_previous = load_previous_data(selected_source, "database.db", date_str)
+
+            # Vérifier les changements de types ou de nature
+            cell_anomalies = check_cell_changes(df, df_previous, source_name)
+            if cell_anomalies:
+                st.warning(f"Anomalies détectées pour {source_name} :")
+                for anomaly in cell_anomalies:
+                    st.write(f"- {anomaly}")
+
             st.dataframe(df, use_container_width=True)
         except Exception as e:
             st.error(f"Erreur lors de l'extraction pour {source_name} : {e}")
+
+if __name__ == "__main__":
+    list_sources_section()

@@ -5,3 +5,4 @@ Downloads/*
 database.db
 *.log
 matrice sources.xlsx
+logs/*

@@ -14,7 +14,6 @@ DOWNLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "Downloads", f"{mon
 SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "..", "source_settings.json")
 DEST_PATH = DOWNLOAD_DIR  # Utilisé dans downloader.py
 TEMP_DOWNLOAD_DIR = os.path.join(os.path.expanduser("~"), "Downloads")
-CHROMEDRIVER_PATH = "C:/chromedriver/chromedriver.exe"
 
 def get_download_dir(date_str=None):
     """Retourne le répertoire de téléchargement pour une date donnée (format MM-DD ou date du jour)."""

@@ -1,19 +1,23 @@
 # src/utils.py
 import pandas as pd
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy import create_engine, text, inspect
+import numpy as np
 from src.config import SOURCE_FILE
+
 
 def load_excel_data():
     """Charge les données depuis le fichier Excel."""
     df = pd.read_excel(SOURCE_FILE, sheet_name="Source sans doub", dtype=str)
     return df
 
+
 def save_to_excel(df):
     """Sauvegarde le DataFrame dans le fichier Excel."""
     with pd.ExcelWriter(SOURCE_FILE, mode='a', if_sheet_exists='replace') as writer:
         df.to_excel(writer, sheet_name="Source sans doub", index=False)
+
 
 def make_unique_titles(titles):
     """Ajoute un suffixe '_x' aux titres dupliqués pour les rendre uniques."""
@@ -29,6 +33,7 @@ def make_unique_titles(titles):
             unique_titles.append(clean_title)
     return unique_titles
 
+
 def clean_column_name(name, idx):
     """Nettoie un nom de colonne pour qu'il soit valide en SQL."""
     name = str(name).lower()
@@ -40,6 +45,7 @@ def clean_column_name(name, idx):
     if not name:
         name = f"unnamed_{idx}"
     return name
+
 
 def delete_existing_data_for_date(engine, table_name, extraction_date):
     """Supprime les données existantes pour une date donnée dans une table."""
@@ -54,6 +60,7 @@ def delete_existing_data_for_date(engine, table_name, extraction_date):
                 pass
             else:
                 raise
+
 
 def adjust_dataframe_to_table(df, engine, table_name):
     """
@@ -83,6 +90,7 @@ def adjust_dataframe_to_table(df, engine, table_name):
 
     return adjusted_df
 
+
 def insert_dataframe_to_sql(df, table_name, db_path):
     """
     Insère un DataFrame dans une table SQL avec suppression des données existantes pour la même date.
@@ -108,3 +116,94 @@ def insert_dataframe_to_sql(df, table_name, db_path):
 
     # Insérer les données
     df_clean.to_sql(table_name, engine, if_exists='append', index=False)
+
+
+def load_previous_data(source, db_path, date_str):
+    """Charge les données de la veille pour une source depuis la base SQLite."""
+    table_name = source.replace(" ", "_").replace("-", "_").lower()
+    previous_date = (datetime.strptime(date_str, "%m-%d") - timedelta(days=1)).strftime("%m-%d")
+    engine = create_engine(f"sqlite:///{db_path}")
+    try:
+        query = f"""
+        SELECT * FROM {table_name}
+        WHERE DATE(extraction_datetime) = '{datetime.now().year}-{previous_date}'
+        """
+        df_previous = pd.read_sql_query(query, engine)
+        return df_previous
+    except:
+        return pd.DataFrame()  # Retourner un DataFrame vide si aucune donnée ou erreur
+
+
+def check_cell_changes(df_current, df_previous, source):
+    """
+    Vérifie les changements de types ou de nature des valeurs dans les cellules entre le jour actuel et la veille.
+    Ignore les cas où une cellule est vide (NaN, None, '-') dans l'un des DataFrames.
+    Retourne une liste d'anomalies (informatif).
+    """
+    anomalies = []
+
+    if df_previous.empty:
+        anomalies.append("Aucune donnée disponible pour la veille.")
+        return anomalies
+
+    current_titles = df_current.columns.tolist()
+    previous_titles = df_previous.columns.tolist()
+    common_cols = [col for col in current_titles if col in previous_titles and col != 'extraction_datetime']
+
+    for col in common_cols:
+        for idx in range(min(len(df_current), len(df_previous))):
+            current_value = df_current.iloc[idx][col]
+            previous_value = df_previous.iloc[idx][col]
+
+            # Définir les valeurs considérées comme "vides"
+            empty_values = [None, np.nan, '', '-', 'NaN']
+
+            # Vérifier si l'une des valeurs est vide
+            current_is_empty = pd.isna(current_value) or current_value in empty_values
+            previous_is_empty = pd.isna(previous_value) or previous_value in empty_values
+
+            # Ignorer si l'une des valeurs est vide
+            if current_is_empty or previous_is_empty:
+                continue
+
+            try:
+                # Déterminer les types
+                current_type = type(current_value).__name__
+                previous_type = type(previous_value).__name__
+
+                # Convertir les types numpy en types Python
+                if isinstance(current_value, np.floating):
+                    current_type = 'float'
+                if isinstance(previous_value, np.floating):
+                    previous_type = 'float'
+                if isinstance(current_value, np.integer):
+                    current_type = 'int'
+                if isinstance(previous_value, np.integer):
+                    previous_type = 'int'
+
+                # Vérifier les changements de type
+                if current_type != previous_type:
+                    anomalies.append(
+                        f"Changement de type dans la colonne {col}, ligne {idx + 1} (actuel : {current_type}, veille : {previous_type}, valeur actuelle : {current_value}, valeur veille : {previous_value}).")
+
+                # Vérifier les changements de nature (numérique vs texte)
+                try:
+                    float(current_value)
+                    current_is_numeric = True
+                except (ValueError, TypeError):
+                    current_is_numeric = False
+
+                try:
+                    float(previous_value)
+                    previous_is_numeric = True
+                except (ValueError, TypeError):
+                    previous_is_numeric = False
+
+                if current_is_numeric != previous_is_numeric:
+                    anomalies.append(
+                        f"Changement de nature dans la colonne {col}, ligne {idx + 1} (actuel : {'numérique' if current_is_numeric else 'texte'}, veille : {'numérique' if previous_is_numeric else 'texte'}, valeur actuelle : {current_value}, valeur veille : {previous_value}).")
+
+            except Exception as e:
+                anomalies.append(f"Erreur lors de la vérification dans la colonne {col}, ligne {idx + 1} : {str(e)}.")
+
+    return anomalies
