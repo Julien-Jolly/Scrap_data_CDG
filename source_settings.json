@@ -12,7 +12,7 @@
             21,
             96
         ],
-        "selected_table": "Source126 - Taux de ch\u00f4mage selon les tranches d'\u00e2ge au milieu urbain - Trimestriel (14).xlsx"
+        "selected_table": "Source126 - Taux de ch\u00f4mage selon les tranches d'\u00e2ge au milieu urbain - Trimestriel (15).xlsx"
     },
     "Source34": {
         "separator": ";",
@@ -27,13 +27,13 @@
             2,
             3
         ],
-        "selected_table": "Source34 - Bande-de-fluctuation_17_04_2025-16_14.csv"
+        "selected_table": "Source34 - Bande-de-fluctuation_20_04_2025-11_51.csv"
     },
     "Source35": {
         "separator": ";",
         "page": 0,
         "title_range": [
-            2,
+            3,
             3,
             0,
             2
@@ -42,7 +42,7 @@
             4,
             33
         ],
-        "selected_table": "Source35 - Cours-de-reference_18_04_2025-13_00.csv"
+        "selected_table": "Source35 - Cours-de-reference_20_04_2025-17_05 (1).csv"
     },
     "Source31": {
         "separator": ";",
@@ -57,7 +57,7 @@
             3,
             32
         ],
-        "selected_table": "Source31 - Encours-des-interventions_18_04_2025-05_00.csv"
+        "selected_table": "Source31 - Encours-des-interventions_20_04_2025-04_00 (1).csv"
     },
     "Source127": {
         "separator": ";",
@@ -72,7 +72,7 @@
             2,
             13
         ],
-        "selected_table": "Source127 - PIB en volume - Tableau (9).xlsx"
+        "selected_table": "Source127 - PIB en volume - Tableau (10).xlsx"
     },
     "Source128": {
         "separator": ";",
@@ -102,7 +102,7 @@
             3,
             6
         ],
-        "selected_table": "Source32 - Resultats-des-emissions-de-bons-du-tresor_18_04_2025-12_02.csv"
+        "selected_table": "Source32 - Resultats-des-emissions-de-bons-du-tresor_20_04_2025-16_01 (1).csv"
     },
     "Source2_1": {
         "separator": ";",
@@ -117,7 +117,7 @@
             22,
             28
         ],
-        "selected_table": "Source2_1 - STAT COM 28-03-2025 (3).xls"
+        "selected_table": "Source2_1 - STAT COM 28-03-2025 (7).xls"
     },
     "Source2_2": {
         "separator": ";",
@@ -132,7 +132,7 @@
             34,
             38
         ],
-        "selected_table": "Source2_2 - STAT COM 28-03-2025 (3).xls"
+        "selected_table": "Source2_2 - STAT COM 28-03-2025 (7).xls"
     },
     "Source2_3": {
         "separator": ";",
@@ -147,7 +147,7 @@
             46,
             57
         ],
-        "selected_table": "Source2_3 - STAT COM 28-03-2025 (3).xls"
+        "selected_table": "Source2_3 - STAT COM 28-03-2025 (7).xls"
     },
     "Source10": {
         "separator": ";",
@@ -537,7 +537,7 @@
             3,
             17
         ],
-        "selected_table": "Source24 - Operations-principales_17_04_2025-21_01.csv"
+        "selected_table": "Source24 - Operations-principales_20_04_2025-19_04 (1).csv"
     },
     "Source25": {
         "separator": ";",
@@ -552,7 +552,7 @@
             3,
             188
         ],
-        "selected_table": "Source25 - Facilites-permanentes_17_04_2025-16_11.csv"
+        "selected_table": "Source25 - Facilites-permanentes_20_04_2025-18_45.csv"
     },
     "Source26": {
         "separator": ";",
@@ -567,7 +567,7 @@
             3,
             350
         ],
-        "selected_table": "Source26 - Operations-de-long-terme_17_04_2025-21_01 (1).csv"
+        "selected_table": "Source26 - Operations-de-long-terme_20_04_2025-19_23.csv"
     },
     "Source27": {
         "separator": ";",
@@ -597,7 +597,7 @@
             3,
             1002
         ],
-        "selected_table": "Source28 - Indice-monia-moroccan-overnight-index-average_18_04_2025-13_00 (1).csv"
+        "selected_table": "Source28 - Indice-monia-moroccan-overnight-index-average_20_04_2025-13_01.csv"
     },
     "Source29": {
         "separator": ";",
@@ -612,7 +612,7 @@
             5,
             31
         ],
-        "selected_table": "Source29 - Constitution-de-la-reserve-obligatoire_18_04_2025-13_02.csv"
+        "selected_table": "Source29 - Constitution-de-la-reserve-obligatoire_20_04_2025-16_00 (1).csv"
     },
     "Source30": {
         "separator": ";",
@@ -627,7 +627,7 @@
             3,
             12
         ],
-        "selected_table": "Source30 - Taux-de-reference-des-bons-du-tresor_18_04_2025-14_32.csv"
+        "selected_table": "Source30 - Taux-de-reference-des-bons-du-tresor_20_04_2025-22_11.csv"
     },
     "Source36": {
         "separator": ";",
@@ -642,7 +642,7 @@
             3,
             1002
         ],
-        "selected_table": "Source36 - Marche-monetaire-interbancaire_18_04_2025-13_00 (1).csv"
+        "selected_table": "Source36 - Marche-monetaire-interbancaire_20_04_2025-13_01.csv"
     },
     "Source37": {
         "separator": ";",
@@ -1257,7 +1257,7 @@
             4,
             8
         ],
-        "selected_table": "Source77 - Taux-debiteurs_17_04_2025-19_45.csv"
+        "selected_table": "Source77 - Taux-debiteurs_20_04_2025-18_46.csv"
     },
     "Source78": {
         "separator": ";",
@@ -1272,7 +1272,7 @@
             1,
             12
         ],
-        "selected_table": "Source78 - BKAM s\u00e9rie IPSB 2022 (15).xlsx"
+        "selected_table": "Source78 - BKAM s\u00e9rie IPSB 2022 (17).xlsx"
     },
     "Source79": {
         "separator": ";",
@@ -1287,7 +1287,7 @@
             2,
             77
         ],
-        "selected_table": "Source79 - BKAM S\u00e9ries IPAI T4 2024 (12).xlsx"
+        "selected_table": "Source79 - BKAM S\u00e9ries IPAI T4 2024 (14).xlsx"
     },
     "Source80": {
         "separator": ";",
@@ -1302,7 +1302,7 @@
             1,
             86
         ],
-        "selected_table": "Source80 - BKAM Inflation et inflation sous jacente (11).xlsx"
+        "selected_table": "Source80 - BKAM Inflation et inflation sous jacente (13).xlsx"
     },
     "Source82": {
         "separator": ";",
@@ -1333,5 +1333,20 @@
             4
         ],
         "selected_table": "Source81 - 8990852.pdf"
+    },
+    "Source2_4": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            63,
+            63,
+            1,
+            9
+        ],
+        "data_range": [
+            64,
+            65
+        ],
+        "selected_table": "Source2_4 - STAT COM 28-03-2025 (7).xls"
     }
 }

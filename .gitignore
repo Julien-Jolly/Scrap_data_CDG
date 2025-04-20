@@ -4,5 +4,6 @@ temp.py
 Downloads/*
 database.db
 *.log
-matrice sources.xlsx
+matrice_sources.xlsx
 logs/*
+*.zip

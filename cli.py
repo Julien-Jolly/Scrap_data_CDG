@@ -16,13 +16,18 @@ from src.config import DEST_PATH, get_download_dir
 log_dir = os.path.join(os.path.dirname(__file__), "logs")
 os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, f"cli_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+
+# Formatter pour le fichier (détaillé)
+file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+# Configurer le handler pour le fichier uniquement
+file_handler = logging.FileHandler(log_file)
+file_handler.setFormatter(file_formatter)
+
+# Configurer le logger principal (pas de console handler)
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(log_file),
-        logging.StreamHandler()
-    ]
+    handlers=[file_handler]
 )
 logger = logging.getLogger(__name__)
 
@@ -34,37 +39,51 @@ summary_handler = logging.FileHandler(summary_log_file)
 summary_handler.setFormatter(logging.Formatter('%(message)s'))
 summary_logger.addHandler(summary_handler)
 
-
 def download_and_process(args):
     """Télécharge, traite et insère les sources dans la BDD."""
-    logger.info("Étape 1 : Téléchargement des fichiers...")
+    print("=== Phase de téléchargement ===")
+    logger.info("Etape 1 : Téléchargement des fichiers...")
     status_queue = queue.Queue()
     sources = get_sources()
     downloaded_sources = []
     download_errors = []
     successes, total, errors = download_files(sources, status_queue)
-    logger.info(f"Téléchargements terminés : {successes}/{total} réussis")
 
     # Collecter les résultats du téléchargement
     for source in sources:
+        print(f"--- {source} ---")
         if any(error[0] == source for error in errors):
             error_msg = next(error[1] for error in errors if error[0] == source)
+            print(f"Téléchargement : ❌ Échec ({error_msg})")
+            logger.error(f"Téléchargement de {source} échoué : {error_msg}")
             download_errors.append({"Source": source, "Erreur": error_msg})
         else:
+            print(f"Téléchargement : ✅ Succès")
+            logger.info(f"Téléchargement de {source} réussi")
             downloaded_sources.append({"Source": source})
+        print()  # Ajouter une ligne vide entre les blocs
 
-    logger.info("Étape 2 : Traitement et insertion dans la BDD...")
+    logger.info(f"Téléchargements terminés : {successes}/{total} réussis")
+    print(f"\nRésumé : {successes}/{total} sources téléchargées avec succès")
+    if download_errors:
+        print("Sources en erreur :")
+        for error in download_errors:
+            print(f"- {error['Source']} ({error['Erreur']})")
+    else:
+        print("Sources en erreur : Aucune")
+
+    print("\n=== Phase de traitement et insertion ===")
+    logger.info("Etape 2 : Traitement et insertion dans la BDD...")
     process_and_insert(args.db_path, downloaded_sources, download_errors)
-
 
 def process_only(args):
     """Traite les fichiers existants et insère dans la BDD."""
+    print("=== Phase de traitement et insertion ===")
     logger.info("Traitement des fichiers existants et insertion dans la BDD...")
     downloaded_sources = [{"Source": source} for source in
                           get_downloaded_files(get_download_dir(datetime.now().strftime("%m-%d"))).keys()]
     download_errors = []
     process_and_insert(args.db_path, downloaded_sources, download_errors)
-
 
 def process_and_insert(db_path, downloaded_sources, download_errors):
     """Traite les fichiers et insère les DataFrames dans la BDD."""
@@ -81,12 +100,15 @@ def process_and_insert(db_path, downloaded_sources, download_errors):
     processed_sources = []
     inserted_sources = []
     insert_errors = []
+    sources_with_anomalies = []
 
     for source in downloaded_files:
         source_name = df_excel[df_excel[columns[0]] == source][columns[7]].iloc[0] if len(
             df_excel[df_excel[columns[0]] == source]) > 0 else source
-        logger.info(f"Traitement de la source : {source}")
-        print(f"Traitement de la source : {source}")
+        print(f"--- {source_name} ---")
+        logger.info(f"--- {source_name} ---")
+
+        print(f"Traitement     : ⏳ En cours")
         settings = get_source_settings(source)
         separator = settings.get("separator", ";")
         page = settings.get("page", 0)
@@ -95,9 +117,13 @@ def process_and_insert(db_path, downloaded_sources, download_errors):
         selected_table = settings.get("selected_table", None)
 
         if not selected_table:
-            logger.warning(f"Aucun tableau sélectionné pour {source}. Ignoré.")
-            print(f"Avertissement : Aucun tableau sélectionné pour {source}. Ignoré.")
-            insert_errors.append({"Source": source_name, "Erreur": "Aucun tableau sélectionné."})
+            msg = f"Aucun tableau sélectionné pour {source}. Ignoré."
+            logger.warning(msg)
+            print(f"Traitement     : ⚠️ Avertissement ({msg})")
+            print(f"Insertion      : 🚫 Non effectué")
+            print(f"Résultat       : ❌ Échec ({msg})")
+            insert_errors.append({"Source": source_name, "Erreur": msg})
+            print()  # Ajouter une ligne vide entre les blocs
             continue
 
         file_paths = downloaded_files[source]
@@ -108,127 +134,173 @@ def process_and_insert(db_path, downloaded_sources, download_errors):
                 break
 
         if not file_path:
-            logger.error(f"Fichier {selected_table} introuvable pour {source}. Ignoré.")
-            print(f"Erreur : Fichier {selected_table} introuvable pour {source}. Ignoré.")
-            insert_errors.append({"Source": source_name, "Erreur": f"Fichier {selected_table} introuvable."})
+            msg = f"Fichier {selected_table} introuvable pour {source}. Ignoré."
+            logger.error(msg)
+            print(f"Traitement     : ❌ Échec ({msg})")
+            print(f"Insertion      : 🚫 Non effectué")
+            print(f"Résultat       : ❌ Échec ({msg})")
+            insert_errors.append({"Source": source_name, "Erreur": msg})
+            print()  # Ajouter une ligne vide entre les blocs
             continue
 
         try:
-            # Récupérer la date de téléchargement (date de modification du fichier)
             download_datetime = datetime.fromtimestamp(os.path.getmtime(file_path))
 
             raw_data = parse_file(file_path, separator, page, selected_columns=None)
             if not raw_data:
-                logger.error(f"Aucune donnée extraite pour {selected_table}. Ignoré.")
-                print(f"Erreur : Aucune donnée extraite pour {selected_table}. Ignoré.")
-                insert_errors.append({"Source": source_name, "Erreur": "Aucune donnée extraite."})
+                msg = f"Aucune donnée extraite pour {selected_table}. Ignoré."
+                logger.error(msg)
+                print(f"Traitement     : ❌ Échec ({msg})")
+                print(f"Insertion      : 🚫 Non effectué")
+                print(f"Résultat       : ❌ Échec ({msg})")
+                insert_errors.append({"Source": source_name, "Erreur": msg})
+                print()  # Ajouter une ligne vide entre les blocs
                 continue
 
             titles, data = extract_data(raw_data, title_range, data_range)
             if not titles or not data:
-                logger.warning(f"Aucune donnée ou titre extrait pour {selected_table}. Ignoré.")
-                print(f"Avertissement : Aucune donnée ou titre extrait pour {selected_table}. Ignoré.")
-                insert_errors.append({"Source": source_name, "Erreur": "Aucune donnée ou titre extrait."})
+                msg = f"Aucune donnée ou titre extrait pour {selected_table}. Ignoré."
+                logger.warning(msg)
+                print(f"Traitement     : ⚠️ Avertissement ({msg})")
+                print(f"Insertion      : 🚫 Non effectué")
+                print(f"Résultat       : ❌ Échec ({msg})")
+                insert_errors.append({"Source": source_name, "Erreur": msg})
+                print()  # Ajouter une ligne vide entre les blocs
                 continue
 
             data_col_count = max(len(row) for row in data) if data else 0
             if len(titles) != data_col_count:
-                logger.error(
-                    f"Les titres ({len(titles)} colonnes) ne correspondent pas aux données ({data_col_count} colonnes) pour {source}. Ignoré.")
-                print(
-                    f"Erreur : Les titres ({len(titles)} colonnes) ne correspondent pas aux données ({data_col_count} colonnes) pour {source}. Ignoré.")
-                insert_errors.append({"Source": source_name,
-                                      "Erreur": f"Les titres ({len(titles)} colonnes) ne correspondent pas aux données ({data_col_count} colonnes)."})
+                msg = f"Les titres ({len(titles)} colonnes) ne correspondent pas aux données ({data_col_count} colonnes)."
+                logger.error(msg)
+                print(f"Traitement     : ❌ Échec ({msg})")
+                print(f"Insertion      : 🚫 Non effectué")
+                print(f"Résultat       : ❌ Échec ({msg})")
+                insert_errors.append({"Source": source_name, "Erreur": msg})
+                print()  # Ajouter une ligne vide entre les blocs
                 continue
 
             unique_titles = make_unique_titles(titles)
             data_with_datetime = []
             for row in data:
                 data_with_datetime.append([download_datetime] + row)
-                time.sleep(0.001)  # Conserver le léger décalage pour éviter des doublons exacts
+                time.sleep(0.001)
             unique_titles_with_datetime = ['extraction_datetime'] + unique_titles
             df_current = pd.DataFrame(data_with_datetime, columns=unique_titles_with_datetime)
 
-            # Ajouter à la liste des sources traitées
             processed_sources.append({"Source": source_name})
+            print(f"Traitement     : ✅ Succès")
 
-            # Charger les données de la veille
             df_previous = load_previous_data(source, db_path, date_str)
-
-            # Vérifier les changements de types ou de nature
             cell_anomalies = check_cell_changes(df_current, df_previous, source_name)
-            if cell_anomalies:
-                logger.warning(f"Anomalies détectées pour {source_name} :")
-                print(f"Anomalies détectées pour {source_name} :")
-                for anomaly in cell_anomalies:
-                    logger.warning(anomaly)
-                    print(f"- {anomaly}")
+            anomalies_detected = bool(cell_anomalies)
 
-            # Insérer les données dans la base
+            print(f"Insertion      : ⏳ En cours")
             table_name = source.replace(" ", "_").replace("-", "_").lower()
             try:
                 insert_dataframe_to_sql(df_current, table_name, db_path)
                 logger.info(f"DataFrame pour {source} inséré dans la table {table_name} avec extraction_datetime.")
-                print(f"Succès : DataFrame pour {source} inséré dans la table {table_name} avec extraction_datetime.")
+                print(f"Insertion      : ✅ Succès")
                 inserted_sources.append({"Source": source_name})
+                if anomalies_detected:
+                    # Capturer la première anomalie comme raison principale
+                    anomaly_reason = cell_anomalies[0] if cell_anomalies else "Raison non spécifiée"
+                    logger.warning(f"Anomalie pour {source_name} : {anomaly_reason}")
+                    for anomaly in cell_anomalies:
+                        logger.warning(anomaly)
+                    sources_with_anomalies.append({"Source": source_name, "Anomalie": anomaly_reason})
             except Exception as e:
-                logger.error(f"Erreur lors de l'insertion de {source} dans la BDD : {e}")
-                print(f"Erreur lors de l'insertion de {source} dans la BDD : {e}")
+                msg = f"Erreur lors de l'insertion de {source} dans la BDD : {str(e)}"
+                logger.error(msg)
+                print(f"Insertion      : ❌ Échec ({str(e)[:50]}...)")
+                print(f"Résultat       : ❌ Échec ({str(e)[:50]}...)")
                 insert_errors.append({"Source": source_name, "Erreur": str(e)})
+                print()  # Ajouter une ligne vide entre les blocs
+                continue
+
+            result_msg = "✅ Succès" if not anomalies_detected else f"✅ Succès (avec anomalie : {anomaly_reason[:50]})"
+            print(f"Résultat       : {result_msg}")
+            print()  # Ajouter une ligne vide entre les blocs
 
         except Exception as e:
-            logger.error(f"Erreur lors du traitement de {source} : {e}")
-            print(f"Erreur lors du traitement de {source} : {e}")
+            msg = f"Erreur lors du traitement de {source} : {str(e)}"
+            logger.error(msg)
+            print(f"Traitement     : ❌ Échec ({str(e)[:50]}...)")
+            print(f"Insertion      : 🚫 Non effectué")
+            print(f"Résultat       : ❌ Échec ({str(e)[:50]}...)")
             insert_errors.append({"Source": source_name, "Erreur": str(e)})
+            print()  # Ajouter une ligne vide entre les blocs
 
-    # Générer le fichier de log de résumé
+    print(f"\nRésumé : {len(inserted_sources)}/{len(downloaded_files)} sources insérées avec succès")
+    if insert_errors:
+        print("Sources en erreur :")
+        for error in insert_errors:
+            print(f"- {error['Source']} ({error['Erreur']})")
+    else:
+        print("Sources en erreur : Aucune")
+    if sources_with_anomalies:
+        print("Sources avec anomalies :")
+        for anomaly in sources_with_anomalies:
+            print(f"- {anomaly['Source']} ({anomaly['Anomalie']})")
+    else:
+        print("Sources avec anomalies : Aucune")
+
+    # Nettoyer les noms des sources pour éviter les problèmes d'alignement
+    def clean_source_name(source):
+        return source.strip()
+
+    # Fonction pour formater les DataFrames manuellement avec alignement à gauche
+    def format_dataframe(data, columns):
+        if not data:
+            return "Aucun élément"
+        lines = ["\t".join(columns)]  # En-tête
+        for item in data:
+            line = "\t".join(clean_source_name(str(item.get(col, ""))) for col in columns)
+            lines.append(line)
+        return "\n".join(lines)
+
+    # Générer le fichier de log de résumé avec alignement à gauche
     summary_logger.info("Résumé de l'exécution CLI\n")
-
-    # Sources téléchargées
     summary_logger.info("Sources téléchargées :")
     if downloaded_sources:
-        df_downloaded = pd.DataFrame(downloaded_sources)
-        summary_logger.info(df_downloaded.to_string(index=False))
+        summary_logger.info(format_dataframe(downloaded_sources, ["Source"]))
     else:
-        summary_logger.info("Aucune source téléchargée.")
+        summary_logger.info("Aucun élément")
     summary_logger.info("\n")
 
-    # Sources non téléchargées en erreur
     summary_logger.info("Sources non téléchargées en erreur :")
     if download_errors:
-        df_download_errors = pd.DataFrame(download_errors)
-        summary_logger.info(df_download_errors.to_string(index=False))
+        summary_logger.info(format_dataframe(download_errors, ["Source", "Erreur"]))
     else:
-        summary_logger.info("Aucune erreur de téléchargement.")
+        summary_logger.info("Aucun élément")
     summary_logger.info("\n")
 
-    # Sources traitées
     summary_logger.info("Sources traitées :")
     if processed_sources:
-        df_processed = pd.DataFrame(processed_sources)
-        summary_logger.info(df_processed.to_string(index=False))
+        summary_logger.info(format_dataframe(processed_sources, ["Source"]))
     else:
-        summary_logger.info("Aucune source traitée.")
+        summary_logger.info("Aucun élément")
     summary_logger.info("\n")
 
-    # Sources insérées dans la BDD
     summary_logger.info("Sources traitées insérées dans la BDD :")
     if inserted_sources:
-        df_inserted = pd.DataFrame(inserted_sources)
-        summary_logger.info(df_inserted.to_string(index=False))
+        summary_logger.info(format_dataframe(inserted_sources, ["Source"]))
     else:
-        summary_logger.info("Aucune source insérée.")
+        summary_logger.info("Aucun élément")
     summary_logger.info("\n")
 
-    # Sources non insérées en erreur
+    summary_logger.info("Sources traitées avec anomalies :")
+    if sources_with_anomalies:
+        summary_logger.info(format_dataframe(sources_with_anomalies, ["Source", "Anomalie"]))
+    else:
+        summary_logger.info("Aucun élément")
+    summary_logger.info("\n")
+
     summary_logger.info("Sources traitées non insérées en erreur :")
     if insert_errors:
-        df_insert_errors = pd.DataFrame(insert_errors)
-        summary_logger.info(df_insert_errors.to_string(index=False))
+        summary_logger.info(format_dataframe(insert_errors, ["Source", "Erreur"]))
     else:
-        summary_logger.info("Aucune erreur d'insertion.")
+        summary_logger.info("Aucun élément")
     summary_logger.info("\n")
-
 
 def main():
     parser = argparse.ArgumentParser(
@@ -249,7 +321,6 @@ def main():
         process_only(args)
     else:
         parser.print_help()
-
 
 if __name__ == "__main__":
     main()

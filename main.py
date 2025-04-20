@@ -18,7 +18,7 @@ def main():
     ])
 
     # Corps de la page
-    st.title("Téléchargement de Fichiers")
+    st.title("Téléchargement et traitement des sources externes")
 
     # Charger les sources
     sources = get_sources()

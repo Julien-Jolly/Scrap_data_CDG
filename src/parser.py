@@ -6,9 +6,12 @@ import pdfplumber
 import json
 import re
 import csv
+import logging
 from bs4 import BeautifulSoup
 
 from src.config import SETTINGS_FILE, get_download_dir
+
+logger = logging.getLogger(__name__)
 
 def get_downloaded_files(download_dir=None):
     """Retourne une liste des fichiers téléchargés avec leur source."""
@@ -32,12 +35,12 @@ def parse_html_table(file_path, selected_columns=None):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             html_content = f.read()
-        print(f"Contenu HTML lu depuis {file_path} : {html_content[:200]}...")
+        logger.debug(f"Contenu HTML lu depuis {file_path} : {html_content[:200]}...")
 
         soup = BeautifulSoup(html_content, 'html.parser')
         table = soup.find('table')
         if not table:
-            print(f"Aucun tableau trouvé dans {file_path}")
+            logger.warning(f"Aucun tableau trouvé dans {file_path}")
             return []
 
         headers = []
@@ -68,7 +71,7 @@ def parse_html_table(file_path, selected_columns=None):
                     else:
                         header_text = th.get_text(strip=True)
                     headers.append(header_text)
-        print(f"En-têtes extraits : {headers}")
+        logger.debug(f"En-têtes extraits : {headers}")
 
         rows = []
         tbody = table.find('tbody')
@@ -91,7 +94,7 @@ def parse_html_table(file_path, selected_columns=None):
                     cells.append(cell_text)
                 if cells:
                     rows.append(cells)
-                    print(f"Ligne extraite : {cells}")
+                    logger.debug(f"Ligne extraite : {cells}")
         else:
             trs = table.find_all('tr')
             start_index = 1 if headers else 0
@@ -113,12 +116,12 @@ def parse_html_table(file_path, selected_columns=None):
                     cells.append(cell_text)
                 if cells:
                     rows.append(cells)
-                    print(f"Ligne extraite : {cells}")
-        print(f"Total lignes extraites : {len(rows)}")
+                    logger.debug(f"Ligne extraite : {cells}")
+        logger.debug(f"Total lignes extraites : {len(rows)}")
 
         return [headers] + rows if headers and rows else [headers] if headers else []
     except Exception as e:
-        print(f"Erreur lors du parsing HTML : {e}")
+        logger.error(f"Erreur lors du parsing HTML : {e}")
         return []
 
 def parse_file(file_path, separator=None, page=0, selected_columns=None):

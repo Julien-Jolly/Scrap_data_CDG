@@ -12,7 +12,7 @@ Les fichiers téléchargés sont organisés dans des dossiers datés (`Downloads
 
 ## Prérequis
 
-- **Python 3.8+**
+- **Python 3.11.9+**
 - **Google Chrome** (pour le téléchargement via Selenium)
 - **Chromedriver** (compatible avec votre version de Chrome)
 - Système d'exploitation : Windows (testé sur Windows 10/11)
