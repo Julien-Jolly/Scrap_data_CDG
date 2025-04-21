@@ -42,7 +42,7 @@
             4,
             33
         ],
-        "selected_table": "Source35 - Cours-de-reference_20_04_2025-17_05 (1).csv"
+        "selected_table": "Source35 - Cours-de-reference_20_04_2025-12_30.csv"
     },
     "Source31": {
         "separator": ";",
@@ -57,7 +57,7 @@
             3,
             32
         ],
-        "selected_table": "Source31 - Encours-des-interventions_20_04_2025-04_00 (1).csv"
+        "selected_table": "Source31 - Encours-des-interventions_21_04_2025-06_00.csv"
     },
     "Source127": {
         "separator": ";",
@@ -102,7 +102,7 @@
             3,
             6
         ],
-        "selected_table": "Source32 - Resultats-des-emissions-de-bons-du-tresor_20_04_2025-16_01 (1).csv"
+        "selected_table": "Source32 - Resultats-des-emissions-de-bons-du-tresor_20_04_2025-13_01.csv"
     },
     "Source2_1": {
         "separator": ";",
@@ -597,7 +597,7 @@
             3,
             1002
         ],
-        "selected_table": "Source28 - Indice-monia-moroccan-overnight-index-average_20_04_2025-13_01.csv"
+        "selected_table": "Source28 - Tableau-des-performances-quotidiennes-au-16-04-2025 (2).xlsx"
     },
     "Source29": {
         "separator": ";",
@@ -627,7 +627,7 @@
             3,
             12
         ],
-        "selected_table": "Source30 - Taux-de-reference-des-bons-du-tresor_20_04_2025-22_11.csv"
+        "selected_table": "Source30 - Taux-de-reference-des-bons-du-tresor_21_04_2025-11_40.csv"
     },
     "Source36": {
         "separator": ";",
@@ -642,7 +642,7 @@
             3,
             1002
         ],
-        "selected_table": "Source36 - Marche-monetaire-interbancaire_20_04_2025-13_01.csv"
+        "selected_table": "Source36 - Marche-monetaire-interbancaire_21_04_2025-03_06.csv"
     },
     "Source37": {
         "separator": ";",
@@ -1257,7 +1257,7 @@
             4,
             8
         ],
-        "selected_table": "Source77 - Taux-debiteurs_20_04_2025-18_46.csv"
+        "selected_table": "Source77 - Taux-debiteurs_21_04_2025-07_29.csv"
     },
     "Source78": {
         "separator": ";",
@@ -1348,5 +1348,20 @@
             65
         ],
         "selected_table": "Source2_4 - STAT COM 28-03-2025 (7).xls"
+    },
+    "Source1": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            1,
+            1,
+            0,
+            27
+        ],
+        "data_range": [
+            2,
+            256
+        ],
+        "selected_table": "Source1 - Tableau-des-performances-quotidiennes-au-16-04-2025.xlsx"
     }
 }

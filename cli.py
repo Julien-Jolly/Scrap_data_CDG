@@ -5,6 +5,7 @@ import os
 import logging
 import queue
 import time
+import threading
 from datetime import datetime
 from src.downloader import download_files, get_sources
 from src.parser import get_downloaded_files, parse_file, extract_data, get_source_settings
@@ -12,10 +13,16 @@ from src.utils import load_excel_data, make_unique_titles, insert_dataframe_to_s
     load_previous_data
 from src.config import DEST_PATH, get_download_dir
 
+# Désactiver les logs des bibliothèques tierces
+logging.getLogger('selenium').setLevel(logging.CRITICAL)
+logging.getLogger('webdriver_manager').setLevel(logging.CRITICAL)
+logging.getLogger('urllib3').setLevel(logging.CRITICAL)
+
 # Configurer la journalisation principale
 log_dir = os.path.join(os.path.dirname(__file__), "logs")
 os.makedirs(log_dir, exist_ok=True)
-log_file = os.path.join(log_dir, f"cli_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+log_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+log_file = os.path.join(log_dir, f"cli_{log_timestamp}.log")
 
 # Formatter pour le fichier (détaillé)
 file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -27,43 +34,92 @@ file_handler.setFormatter(file_formatter)
 # Configurer le logger principal (pas de console handler)
 logging.basicConfig(
     level=logging.INFO,
-    handlers=[file_handler]
+    handlers=[file_handler],
+    force=True  # Forcer la réinitialisation des handlers
 )
+
+# Supprimer explicitement tout StreamHandler du logger racine
+root_logger = logging.getLogger('')
+for handler in root_logger.handlers[:]:
+    if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
+        root_logger.removeHandler(handler)
+
 logger = logging.getLogger(__name__)
 
 # Configurer un logger pour le résumé
-summary_log_file = os.path.join(log_dir, f"summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+summary_log_file = os.path.join(log_dir, f"summary_{log_timestamp}.log")
 summary_logger = logging.getLogger('summary')
 summary_logger.setLevel(logging.INFO)
 summary_handler = logging.FileHandler(summary_log_file)
 summary_handler.setFormatter(logging.Formatter('%(message)s'))
 summary_logger.addHandler(summary_handler)
+summary_logger.propagate = False
 
 def download_and_process(args):
     """Télécharge, traite et insère les sources dans la BDD."""
+    logger.info(f"--- Nouvelle exécution CLI démarrée à {datetime.now()} ---")
+    summary_logger.info(f"--- Nouvelle exécution CLI démarrée à {datetime.now()} ---")
+
     print("=== Phase de téléchargement ===")
     logger.info("Etape 1 : Téléchargement des fichiers...")
-    status_queue = queue.Queue()
     sources = get_sources()
+    if not sources:
+        logger.error("Aucune source trouvée")
+        print("Erreur : Aucune source trouvée")
+        return
+
+    status_queue = queue.Queue()
+    errors = []
+    successes = 0
+    total = len(sources)
+
+    # Fonction pour exécuter download_files dans un thread séparé
+    def run_download():
+        nonlocal successes, total, errors
+        try:
+            successes, total, errors = download_files(sources, status_queue)
+        except Exception as e:
+            logger.error(f"Erreur critique lors du téléchargement : {str(e)}")
+            print(f"Erreur critique lors du téléchargement : {str(e)}")
+
+    # Lancer download_files dans un thread
+    download_thread = threading.Thread(target=run_download)
+    download_thread.start()
+
+    # Consommer status_queue en temps réel
     downloaded_sources = []
     download_errors = []
-    successes, total, errors = download_files(sources, status_queue)
+    source_status = {source: False for source in sources}  # Suivre les sources affichées
+    while download_thread.is_alive() or not status_queue.empty():
+        try:
+            source, status = status_queue.get(timeout=1)
+            if source == "DONE":
+                break
+            if status == "⏳ En cours":
+                print(f"--- {source} ---")
+                print("Téléchargement : ⏳ En cours")
+                source_status[source] = True
+            elif status == "✅ Succès":
+                if source_status.get(source, False):
+                    print("Téléchargement : ✅ Succès")
+                    print()  # Ligne vide
+                downloaded_sources.append({"Source": source})
+            elif status == "❌ Échec":
+                if source_status.get(source, False):
+                    error_msg = next((err[1] for err in errors if err[0] == source), "Erreur inconnue")
+                    print(f"Téléchargement : ❌ Échec ({error_msg})")
+                    print()  # Ligne vide
+                download_errors.append({"Source": source, "Erreur": error_msg})
+            elif status == "🚫 Ignoré":
+                if source_status.get(source, False):
+                    print(f"Téléchargement : 🚫 Ignoré")
+                    print()  # Ligne vide
+                download_errors.append({"Source": source, "Erreur": "Type d'extraction invalide"})
+        except queue.Empty:
+            continue
 
-    # Collecter les résultats du téléchargement
-    for source in sources:
-        print(f"--- {source} ---")
-        if any(error[0] == source for error in errors):
-            error_msg = next(error[1] for error in errors if error[0] == source)
-            print(f"Téléchargement : ❌ Échec ({error_msg})")
-            logger.error(f"Téléchargement de {source} échoué : {error_msg}")
-            download_errors.append({"Source": source, "Erreur": error_msg})
-        else:
-            print(f"Téléchargement : ✅ Succès")
-            logger.info(f"Téléchargement de {source} réussi")
-            downloaded_sources.append({"Source": source})
-        print()  # Ajouter une ligne vide entre les blocs
+    download_thread.join()
 
-    logger.info(f"Téléchargements terminés : {successes}/{total} réussis")
     print(f"\nRésumé : {successes}/{total} sources téléchargées avec succès")
     if download_errors:
         print("Sources en erreur :")
@@ -78,6 +134,9 @@ def download_and_process(args):
 
 def process_only(args):
     """Traite les fichiers existants et insère dans la BDD."""
+    logger.info(f"--- Nouvelle exécution CLI démarrée à {datetime.now()} ---")
+    summary_logger.info(f"--- Nouvelle exécution CLI démarrée à {datetime.now()} ---")
+
     print("=== Phase de traitement et insertion ===")
     logger.info("Traitement des fichiers existants et insertion dans la BDD...")
     downloaded_sources = [{"Source": source} for source in
@@ -198,13 +257,10 @@ def process_and_insert(db_path, downloaded_sources, download_errors):
             table_name = source.replace(" ", "_").replace("-", "_").lower()
             try:
                 insert_dataframe_to_sql(df_current, table_name, db_path)
-                logger.info(f"DataFrame pour {source} inséré dans la table {table_name} avec extraction_datetime.")
                 print(f"Insertion      : ✅ Succès")
                 inserted_sources.append({"Source": source_name})
                 if anomalies_detected:
-                    # Capturer la première anomalie comme raison principale
                     anomaly_reason = cell_anomalies[0] if cell_anomalies else "Raison non spécifiée"
-                    logger.warning(f"Anomalie pour {source_name} : {anomaly_reason}")
                     for anomaly in cell_anomalies:
                         logger.warning(anomaly)
                     sources_with_anomalies.append({"Source": source_name, "Anomalie": anomaly_reason})
@@ -244,21 +300,18 @@ def process_and_insert(db_path, downloaded_sources, download_errors):
     else:
         print("Sources avec anomalies : Aucune")
 
-    # Nettoyer les noms des sources pour éviter les problèmes d'alignement
     def clean_source_name(source):
         return source.strip()
 
-    # Fonction pour formater les DataFrames manuellement avec alignement à gauche
     def format_dataframe(data, columns):
         if not data:
             return "Aucun élément"
-        lines = ["\t".join(columns)]  # En-tête
+        lines = ["\t".join(columns)]
         for item in data:
             line = "\t".join(clean_source_name(str(item.get(col, ""))) for col in columns)
             lines.append(line)
         return "\n".join(lines)
 
-    # Générer le fichier de log de résumé avec alignement à gauche
     summary_logger.info("Résumé de l'exécution CLI\n")
     summary_logger.info("Sources téléchargées :")
     if downloaded_sources:

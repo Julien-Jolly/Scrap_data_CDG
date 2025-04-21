@@ -21,12 +21,12 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from src.config import SOURCE_FILE, DEST_PATH, TEMP_DOWNLOAD_DIR, year, month, day
 
+# Configurer la journalisation sans StreamHandler
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("download_script.log"),
-        logging.StreamHandler()
+        logging.FileHandler("temp_download.log")  # Fichier temporaire pour éviter les conflits
     ]
 )
 logger = logging.getLogger(__name__)
@@ -231,11 +231,9 @@ def scrape_html_table_dl(row, columns, driver):
     try:
         logger.info(f"Tentative de scraping de l'URL avec Selenium : {url}")
         driver.get(url)
-        # Attendre que les tableaux soient chargés
         WebDriverWait(driver, 20).until(
             EC.presence_of_all_elements_located((By.TAG_NAME, "table"))
         )
-        # Pause supplémentaire pour les données dynamiques
         time.sleep(3)
         html_content = driver.page_source
 
@@ -250,10 +248,8 @@ def scrape_html_table_dl(row, columns, driver):
         os.makedirs(DEST_PATH, exist_ok=True)
         success = False
 
-        # Sauvegarder chaque tableau dans un fichier séparé
         for idx, table in enumerate(tables):
             table_html = str(table)
-            logger.info(f"Tableau {idx} extrait : {table_html[:200]}...")
             destination_path = os.path.join(DEST_PATH, f"{prefix} - table_{idx}.html")
             with open(destination_path, "w", encoding="utf-8") as f:
                 f.write(table_html)
@@ -272,10 +268,14 @@ def scrape_html_table_dl(row, columns, driver):
         return False, str(e)
 
 def get_sources():
-    df = pd.read_excel(SOURCE_FILE, sheet_name="Source sans doub", dtype=str, engine="openpyxl").fillna('')
-    sources = df[df.columns[0]].tolist()
-    logger.info(f"Sources trouvées : {sources}")
-    return sources
+    try:
+        df = pd.read_excel(SOURCE_FILE, sheet_name="Source sans doub", dtype=str, engine="openpyxl").fillna('')
+        sources = df[df.columns[0]].tolist()
+        logger.info(f"Sources trouvées : {sources}")
+        return sources
+    except Exception as e:
+        logger.error(f"Erreur lors de la lecture des sources : {str(e)}")
+        return []
 
 def download_files(sources, status_queue):
     """Exécute le téléchargement des fichiers pour les sources données."""
@@ -291,21 +291,32 @@ def download_files(sources, status_queue):
     options.add_argument("--headless")
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-blink-features=AutomationControlled")
-    # Utiliser ChromeDriverManager pour gérer Chromedriver automatiquement
+    options.add_argument("--log-level=3")  # Réduire les logs de ChromeDriver
+    options.add_argument("--silent")  # Supprimer les messages DevTools
     service = Service(ChromeDriverManager().install())
+    service.log_path = os.devnull  # Rediriger les logs de ChromeDriver
     driver = webdriver.Chrome(service=service, options=options)
 
     try:
         for index, row in df_to_download.iterrows():
             source = row[columns[0]]
             extraction_type = row[columns[1]]
-            if extraction_type not in ["1", "2", "3"]:
-                status_queue.put((source, "🚫 Ignoré"))
-            else:
-                status_queue.put((source, "⏳ En cours"))
-                if extraction_type == "1":
+            try:
+                if extraction_type not in ["1", "2", "3"]:
+                    status_queue.put((source, "🚫 Ignoré"))
+                    logger.warning(f"Type d'extraction invalide pour {source} : {extraction_type}")
+                    errors.append((source, f"Type d'extraction invalide : {extraction_type}"))
+                    continue
+                else:
+                    status_queue.put((source, "⏳ En cours"))
                     logger.info(f"Démarrage extraction {source} - {row[columns[2]]}")
-                    success, error = simple_dl(row, columns)
+                    if extraction_type == "1":
+                        success, error = simple_dl(row, columns)
+                    elif extraction_type == "2":
+                        success, error = driver_dl(row, columns, driver)
+                    elif extraction_type == "3":
+                        success, error = scrape_html_table_dl(row, columns, driver)
+
                     if success:
                         successes += 1
                         status_queue.put((source, "✅ Succès"))
@@ -313,26 +324,13 @@ def download_files(sources, status_queue):
                         errors.append((source, error))
                         status_queue.put((source, "❌ Échec"))
                     logger.info(f"Fin extraction {source} - {row[columns[2]]}")
-                elif extraction_type == "2":
-                    logger.info(f"Démarrage extraction {source} - {row[columns[2]]}")
-                    success, error = driver_dl(row, columns, driver)
-                    if success:
-                        successes += 1
-                        status_queue.put((source, "✅ Succès"))
-                    else:
-                        errors.append((source, error))
-                        status_queue.put((source, "❌ Échec"))
-                    logger.info(f"Fin extraction {source} - {row[columns[2]]}")
-                elif extraction_type == "3":
-                    logger.info(f"Démarrage extraction {source} - {row[columns[2]]}")
-                    success, error = scrape_html_table_dl(row, columns, driver)
-                    if success:
-                        successes += 1
-                        status_queue.put((source, "✅ Succès"))
-                    else:
-                        errors.append((source, error))
-                        status_queue.put((source, "❌ Échec"))
-                    logger.info(f"Fin extraction {source} - {row[columns[2]]}")
+            except Exception as e:
+                logger.error(f"Erreur lors du traitement de {source} : {str(e)}")
+                errors.append((source, str(e)))
+                status_queue.put((source, "❌ Échec"))
+    except Exception as e:
+        logger.error(f"Erreur critique dans download_files : {str(e)}")
+        errors.append(("Global", f"Erreur critique : {str(e)}"))
     finally:
         driver.quit()
 
