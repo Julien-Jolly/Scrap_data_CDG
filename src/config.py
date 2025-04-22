@@ -7,6 +7,7 @@ actual_date = datetime.now()
 year = actual_date.strftime("%Y")
 month = actual_date.strftime("%m")
 day = actual_date.strftime("%d")
+day=int(day)
 
 # Chemins des fichiers
 SOURCE_FILE = os.path.join(os.path.dirname(__file__), "..", "matrice_sources.xlsx")

@@ -11,12 +11,14 @@ from bs4 import BeautifulSoup
 
 from src.config import SETTINGS_FILE, get_download_dir
 
+# Configurer le logging pour s'assurer que les messages DEBUG sont visibles
+logging.basicConfig(level=logging.DEBUG, format='%(levelname)s:%(name)s:%(message)s')
 logger = logging.getLogger(__name__)
 
 def get_downloaded_files(download_dir=None):
     """Retourne une liste des fichiers téléchargés avec leur source."""
     if download_dir is None:
-        download_dir = get_download_dir()  # Utiliser la date du jour par défaut
+        download_dir = get_download_dir()
     files = {}
     if not os.path.exists(download_dir):
         return files
@@ -155,43 +157,62 @@ def parse_file(file_path, separator=None, page=0, selected_columns=None):
         return raw_data
     elif ext == ".pdf":
         try:
-            tables = tabula.read_pdf(file_path, pages=str(page + 1), lattice=True, multiple_tables=True)
+            # Essayer tabula avec stream=True pour les tableaux sans bordures verticales
+            tables = tabula.read_pdf(file_path, pages=str(page + 1), stream=True, multiple_tables=True, guess=True, columns=None, area=[50, 0, 1000, 1000])
             if tables and not tables[0].empty:
                 df = tables[0].astype(str)
                 result = [[x for x in row if x != 'nan'] for row in df.values]
-                result = [row for row in result if any(x.strip() for x in row)]
+                # Assouplir le filtrage pour inclure les lignes avec des cellules vides
+                result = [row for row in result if len(row) > 0]
+                logger.debug(f"Tableau extrait avec tabula stream=True: {result}")
                 return result
-            tables = tabula.read_pdf(file_path, pages=str(page + 1), stream=True, multiple_tables=True)
+
+            # Essayer tabula avec lattice=True
+            tables = tabula.read_pdf(file_path, pages=str(page + 1), lattice=True, multiple_tables=True, guess=False)
             if tables and not tables[0].empty:
                 df = tables[0].astype(str)
                 result = [[x for x in row if x != 'nan'] for row in df.values]
-                result = [row for row in result if any(x.strip() for x in row)]
+                result = [row for row in result if len(row) > 0]
+                logger.debug(f"Tableau extrait avec tabula lattice=True: {result}")
                 return result
+
+            # Essayer pdfplumber pour extraire les tableaux
             with pdfplumber.open(file_path) as pdf:
                 if page >= len(pdf.pages) or page < 0:
-                    print(f"Page {page} invalide pour {file_path}")
+                    logger.error(f"Page {page} invalide pour {file_path}")
                     return []
                 pdf_page = pdf.pages[page]
+                tables = pdf_page.extract_tables()
+                if tables:
+                    result = []
+                    for table in tables:
+                        cleaned_table = [[cell.strip() if cell else "" for cell in row] for row in table]
+                        result.extend([row for row in cleaned_table if any(cell.strip() for cell in row)])
+                    logger.debug(f"Tableau extrait avec pdfplumber: {result}")
+                    return result
+
+                # Fallback : extraction texte avec détection manuelle des colonnes
                 text = pdf_page.extract_text() or ""
+                logger.debug(f"Texte extrait avec pdfplumber: {text}")
                 def parse_text_to_table(text):
                     lines = text.splitlines()
                     rows = []
-                    pattern = r"^(.*?)\s+([\d.,]+)\s+([\d.,]+)\s+([+-]?\d+,\d+)\s+([+-]?\d+[.,]\d+)%?-?$"
-                    for line in lines:
-                        line = line.strip()
-                        match = re.match(pattern, line)
-                        if match:
-                            sector_name, val_2025, val_2024, evol_value, evol_percent = match.groups()
-                            val_2025 = val_2025.replace(',', '.')
-                            val_2024 = val_2024.replace(',', '.')
-                            evol_value = evol_value.replace(',', '.')
-                            evol_percent = evol_percent.replace(',', '.').rstrip('-')
-                            rows.append([sector_name, val_2025, val_2024, evol_value, evol_percent])
+                    # Filtrer les lignes pertinentes (exclure les titres comme "OBJET DE L'AVIS")
+                    table_lines = [line for line in lines if line.strip() and not line.startswith(('-OBJET', '-CARACTÉRISTIQUES'))]
+                    # Détecter les colonnes manuellement en utilisant un seuil d'espacement
+                    for line in table_lines:
+                        # Remplacer plusieurs espaces par un séparateur unique
+                        line = re.sub(r'\s{2,}', '  ', line.strip())
+                        # Séparer en deux colonnes (basé sur l'espacement)
+                        parts = line.split('  ', 1)  # Séparer sur deux espaces
+                        if len(parts) == 2:
+                            rows.append([parts[0].strip(), parts[1].strip()])
                     return rows
                 parsed_data = parse_text_to_table(text)
+                logger.debug(f"Données extraites avec détection manuelle: {parsed_data}")
                 return parsed_data if parsed_data else []
         except Exception as e:
-            print(f"Erreur avec tabula-py : {e}")
+            logger.error(f"Erreur lors du parsing PDF {file_path}: {e}")
             return []
     elif ext in [".xls", ".xlsx"]:
         df = pd.read_excel(file_path)
@@ -201,24 +222,45 @@ def parse_file(file_path, separator=None, page=0, selected_columns=None):
 
     return []
 
-def extract_data(raw_data, title_range=None, data_range=None):
+def extract_data(raw_data, title_range=None, data_range=None, ignore_titles=False):
     """Extrait les titres et données selon les plages définies."""
     if not raw_data:
+        logger.debug("raw_data est vide.")
         return [], []
-    if title_range:
+
+    logger.debug(f"raw_data avant extraction: {raw_data}")
+    logger.debug(f"title_range: {title_range}, data_range: {data_range}, ignore_titles: {ignore_titles}")
+
+    # Déterminer le nombre maximum de colonnes dans raw_data
+    max_cols = max(len(row) for row in raw_data) if raw_data else 0
+    logger.debug(f"Nombre maximum de colonnes dans raw_data: {max_cols}")
+
+    # Ajuster les lignes pour qu'elles aient toutes le même nombre de colonnes
+    adjusted_raw_data = []
+    for row in raw_data:
+        if len(row) < max_cols:
+            row = row + [""] * (max_cols - len(row))
+        adjusted_raw_data.append(row)
+    logger.debug(f"raw_data ajusté: {adjusted_raw_data}")
+
+    if title_range and not ignore_titles:
         titles = []
-        for row in raw_data[title_range[0]:title_range[1] + 1]:
+        for row in adjusted_raw_data[title_range[0]:title_range[1] + 1]:
             row_titles = row[title_range[2]:title_range[3] + 1]
             if not titles:
                 titles = row_titles
             else:
                 titles = [f"{t} {r}".strip() if r and t else t or r for t, r in zip(titles, row_titles)]
     else:
-        titles = raw_data[0] if raw_data else []
+        titles = adjusted_raw_data[0] if adjusted_raw_data and not ignore_titles else []
+    logger.debug(f"Titres extraits: {titles}")
+
     data_start = data_range[0] if data_range else 1
-    data_end = data_range[1] + 1 if data_range else len(raw_data)
+    data_end = data_range[1] + 1 if data_range else len(adjusted_raw_data)
     data = [row[title_range[2]:title_range[3] + 1] for row in
-            raw_data[data_start:data_end]] if title_range and data_range else raw_data[1:] if raw_data else []
+            adjusted_raw_data[data_start:data_end]] if title_range and data_range else adjusted_raw_data[data_start:] if adjusted_raw_data else []
+    logger.debug(f"Données extraites: {data}")
+
     return titles, data
 
 def load_settings():
@@ -241,10 +283,11 @@ def get_source_settings(source):
         "page": 0,
         "title_range": [0, 0, 0, 5],
         "data_range": [1, 10],
-        "selected_table": None  # Valeur par défaut
+        "selected_table": None,
+        "ignore_titles": False
     })
 
-def update_source_settings(source, separator, page, title_range, data_range, selected_table=None):
+def update_source_settings(source, separator, page, title_range, data_range, selected_table=None, ignore_titles=False):
     """Met à jour les paramètres d’une source."""
     settings = load_settings()
     settings[source] = {
@@ -252,6 +295,7 @@ def update_source_settings(source, separator, page, title_range, data_range, sel
         "page": page,
         "title_range": title_range,
         "data_range": data_range,
-        "selected_table": selected_table  # Nouveau paramètre
+        "selected_table": selected_table,
+        "ignore_titles": ignore_titles
     }
     save_settings(settings)

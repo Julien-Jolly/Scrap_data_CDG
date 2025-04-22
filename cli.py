@@ -8,7 +8,7 @@ import time
 import threading
 from datetime import datetime
 from src.downloader import download_files, get_sources
-from src.parser import get_downloaded_files, parse_file, extract_data, get_source_settings
+from src.parser import get_downloaded_files, parse_file, extract_data, get_source_settings, update_source_settings
 from src.utils import load_excel_data, make_unique_titles, insert_dataframe_to_sql, check_cell_changes, \
     load_previous_data
 from src.config import DEST_PATH, get_download_dir
@@ -55,6 +55,7 @@ summary_handler.setFormatter(logging.Formatter('%(message)s'))
 summary_logger.addHandler(summary_handler)
 summary_logger.propagate = False
 
+
 def download_and_process(args):
     """Télécharge, traite et insère les sources dans la BDD."""
     logger.info(f"--- Nouvelle exécution CLI démarrée à {datetime.now()} ---")
@@ -74,22 +75,27 @@ def download_and_process(args):
     total = len(sources)
 
     # Fonction pour exécuter download_files dans un thread séparé
-    def run_download():
+    def run_download(sources_to_download):
         nonlocal successes, total, errors
         try:
-            successes, total, errors = download_files(sources, status_queue)
+            successes, total, errors = download_files(sources_to_download, status_queue)
         except Exception as e:
             logger.error(f"Erreur critique lors du téléchargement : {str(e)}")
             print(f"Erreur critique lors du téléchargement : {str(e)}")
 
-    # Lancer download_files dans un thread
-    download_thread = threading.Thread(target=run_download)
-    download_thread.start()
-
-    # Consommer status_queue en temps réel
+    # Liste pour suivre les sources téléchargées et les erreurs
     downloaded_sources = []
     download_errors = []
+
+    # Phase de téléchargement initiale
+    print("--- Tentative initiale ---")
+    sources_to_download = sources.copy()  # Copie initiale de toutes les sources
     source_status = {source: False for source in sources}  # Suivre les sources affichées
+
+    download_thread = threading.Thread(target=run_download, args=(sources_to_download,))
+    download_thread.start()
+
+    # Consommer status_queue en temps réel pour la tentative initiale
     while download_thread.is_alive() or not status_queue.empty():
         try:
             source, status = status_queue.get(timeout=1)
@@ -120,7 +126,20 @@ def download_and_process(args):
 
     download_thread.join()
 
-    print(f"\nRésumé : {successes}/{total} sources téléchargées avec succès")
+    # Vérifier les sources qui n'ont pas été marquées comme réussies
+    downloaded_source_names = [item["Source"] for item in downloaded_sources]
+    failed_sources_initial = [source for source in sources if source not in downloaded_source_names]
+    for source in failed_sources_initial:
+        # Vérifier si la source est déjà dans download_errors
+        if not any(error["Source"] == source for error in download_errors):
+            print(f"--- {source} ---")
+            print("Téléchargement : ❌ Échec (Aucun statut de succès reçu)")
+            print()  # Ligne vide
+            download_errors.append({"Source": source, "Erreur": "Aucun statut de succès reçu"})
+            logger.warning(f"Source {source} marquée comme échouée : Aucun statut de succès reçu")
+
+    # Résumé de la tentative initiale
+    print(f"\nRésumé tentative initiale : {len(downloaded_sources)}/{total} sources téléchargées avec succès")
     if download_errors:
         print("Sources en erreur :")
         for error in download_errors:
@@ -128,9 +147,152 @@ def download_and_process(args):
     else:
         print("Sources en erreur : Aucune")
 
+    # Relancer les téléchargements échoués jusqu'à 2 fois
+    max_retries = 2
+    retry_count = 0
+    failed_sources = [error["Source"] for error in download_errors]  # Sources ayant échoué
+
+    while failed_sources and retry_count < max_retries:
+        retry_count += 1
+        print(f"\n--- Tentative de relance {retry_count}/{max_retries} pour {len(failed_sources)} sources ---")
+        logger.info(f"Tentative de relance {retry_count}/{max_retries} pour {len(failed_sources)} sources")
+
+        # Réinitialiser les listes temporaires pour cette tentative
+        new_downloaded = []
+        new_errors = []
+        sources_to_retry = failed_sources.copy()
+        source_status = {source: False for source in sources_to_retry}
+
+        # Relancer le téléchargement uniquement pour les sources en erreur
+        status_queue = queue.Queue()  # Réinitialiser la queue
+        successes = 0
+        total = len(sources_to_retry)
+        errors = []
+
+        download_thread = threading.Thread(target=run_download, args=(sources_to_retry,))
+        download_thread.start()
+
+        # Consommer status_queue pour cette tentative
+        while download_thread.is_alive() or not status_queue.empty():
+            try:
+                source, status = status_queue.get(timeout=1)
+                if source == "DONE":
+                    break
+                if status == "⏳ En cours":
+                    print(f"--- {source} ---")
+                    print(f"Téléchargement (Tentative {retry_count}) : ⏳ En cours")
+                    source_status[source] = True
+                elif status == "✅ Succès":
+                    if source_status.get(source, False):
+                        print(f"Téléchargement (Tentative {retry_count}) : ✅ Succès")
+                        print()  # Ligne vide
+                    new_downloaded.append({"Source": source})
+                elif status == "❌ Échec":
+                    if source_status.get(source, False):
+                        error_msg = next((err[1] for err in errors if err[0] == source), "Erreur inconnue")
+                        print(f"Téléchargement (Tentative {retry_count}) : ❌ Échec ({error_msg})")
+                        print()  # Ligne vide
+                    new_errors.append({"Source": source, "Erreur": error_msg})
+                elif status == "🚫 Ignoré":
+                    if source_status.get(source, False):
+                        print(f"Téléchargement (Tentative {retry_count}) : 🚫 Ignoré")
+                        print()  # Ligne vide
+                    new_errors.append({"Source": source, "Erreur": "Type d'extraction invalide"})
+            except queue.Empty:
+                continue
+
+        download_thread.join()
+
+        # Vérifier les sources qui n'ont pas été marquées comme réussies dans cette tentative
+        new_downloaded_names = [item["Source"] for item in new_downloaded]
+        failed_sources_retry = [source for source in sources_to_retry if source not in new_downloaded_names]
+        for source in failed_sources_retry:
+            if not any(error["Source"] == source for error in new_errors):
+                print(f"--- {source} ---")
+                print(f"Téléchargement (Tentative {retry_count}) : ❌ Échec (Aucun statut de succès reçu)")
+                print()  # Ligne vide
+                new_errors.append({"Source": source, "Erreur": "Aucun statut de succès reçu"})
+                logger.warning(
+                    f"Source {source} marquée comme échouée (Tentative {retry_count}) : Aucun statut de succès reçu")
+
+        # Mettre à jour les listes globales
+        # Ajouter les nouvelles sources téléchargées avec succès
+        downloaded_sources.extend(new_downloaded)
+
+        # Mettre à jour les erreurs : retirer les sources réussies et garder celles qui ont encore échoué
+        failed_sources = [error["Source"] for error in new_errors]
+        download_errors = [error for error in download_errors if
+                           error["Source"] not in [d["Source"] for d in new_downloaded]]
+        download_errors.extend(new_errors)
+
+        # Résumé de la tentative de relance
+        print(
+            f"\nRésumé tentative {retry_count} : {len(new_downloaded)}/{len(sources_to_retry)} sources téléchargées avec succès")
+        if new_errors:
+            print("Sources toujours en erreur :")
+            for error in new_errors:
+                print(f"- {error['Source']} ({error['Erreur']})")
+        else:
+            print("Sources toujours en erreur : Aucune")
+
+    # Mettre à jour selected_table pour les sources téléchargées avec succès (seulement pour les fichiers CSV)
+    print("\nMise à jour des paramètres des sources téléchargées...")
+    date_str = datetime.now().strftime("%m-%d")
+    downloaded_files = get_downloaded_files(get_download_dir(date_str))
+
+    for source_dict in downloaded_sources:
+        source = source_dict["Source"]
+        if source in downloaded_files:
+            file_paths = downloaded_files[source]
+            if file_paths:
+                # Trier les fichiers par date de modification (prendre le plus récent)
+                file_paths.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+                most_recent_file = os.path.basename(file_paths[0])
+
+                # Charger les paramètres actuels de la source
+                settings = get_source_settings(source)
+                separator = settings.get("separator", ";")
+                page = settings.get("page", 0)
+                title_range = settings.get("title_range", [0, 0, 0, 5])
+                data_range = settings.get("data_range", [1, 10])
+                ignore_titles = settings.get("ignore_titles", False)
+                current_selected_table = settings.get("selected_table")
+
+                # Mettre à jour selected_table uniquement pour les fichiers CSV
+                if most_recent_file.endswith('.csv'):
+                    if current_selected_table != most_recent_file:
+                        update_source_settings(
+                            source=source,
+                            separator=separator,
+                            page=page,
+                            title_range=title_range,
+                            data_range=data_range,
+                            selected_table=most_recent_file,
+                            ignore_titles=ignore_titles
+                        )
+                        logger.info(f"Selected_table mis à jour pour {source} (fichier CSV) : {most_recent_file}")
+                        print(f"Selected_table mis à jour pour {source} (fichier CSV) : {most_recent_file}")
+                    else:
+                        logger.debug(f"Selected_table pour {source} (fichier CSV) déjà à jour : {most_recent_file}")
+                else:
+                    logger.debug(
+                        f"Mise à jour de selected_table ignorée pour {source} (fichier non-CSV : {most_recent_file})")
+                    print(f"Mise à jour de selected_table ignorée pour {source} (fichier non-CSV : {most_recent_file})")
+
+    # Résumé final de la phase de téléchargement
+    print(
+        f"\nRésumé final de la phase de téléchargement : {len(downloaded_sources)}/{len(sources)} sources téléchargées avec succès")
+    if download_errors:
+        print("Sources en erreur après toutes les tentatives :")
+        for error in download_errors:
+            print(f"- {error['Source']} ({error['Erreur']})")
+    else:
+        print("Sources en erreur après toutes les tentatives : Aucune")
+
     print("\n=== Phase de traitement et insertion ===")
     logger.info("Etape 2 : Traitement et insertion dans la BDD...")
     process_and_insert(args.db_path, downloaded_sources, download_errors)
+
 
 def process_only(args):
     """Traite les fichiers existants et insère dans la BDD."""
@@ -143,6 +305,7 @@ def process_only(args):
                           get_downloaded_files(get_download_dir(datetime.now().strftime("%m-%d"))).keys()]
     download_errors = []
     process_and_insert(args.db_path, downloaded_sources, download_errors)
+
 
 def process_and_insert(db_path, downloaded_sources, download_errors):
     """Traite les fichiers et insère les DataFrames dans la BDD."""
@@ -187,13 +350,15 @@ def process_and_insert(db_path, downloaded_sources, download_errors):
 
         file_paths = downloaded_files[source]
         file_path = None
+
+        # Vérifier si le fichier exact existe
         for path in file_paths:
             if os.path.basename(path) == selected_table:
                 file_path = path
                 break
 
         if not file_path:
-            msg = f"Fichier {selected_table} introuvable pour {source}. Ignoré."
+            msg = f"Fichier {selected_table} introuvable pour {source}. Ignoré. Fichiers disponibles : {[os.path.basename(p) for p in file_paths]}"
             logger.error(msg)
             print(f"Traitement     : ❌ Échec ({msg})")
             print(f"Insertion      : 🚫 Non effectué")
@@ -355,6 +520,7 @@ def process_and_insert(db_path, downloaded_sources, download_errors):
         summary_logger.info("Aucun élément")
     summary_logger.info("\n")
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="CLI pour le traitement des sources et l'insertion dans une BDD SQLite.")
@@ -374,6 +540,7 @@ def main():
         process_only(args)
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()

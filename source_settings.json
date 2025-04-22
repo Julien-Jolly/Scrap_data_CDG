@@ -27,7 +27,8 @@
             2,
             3
         ],
-        "selected_table": "Source34 - Bande-de-fluctuation_20_04_2025-11_51.csv"
+        "selected_table": "Source34 - Bande-de-fluctuation_22_04_2025-14_32 (1).csv",
+        "ignore_titles": false
     },
     "Source35": {
         "separator": ";",
@@ -42,7 +43,8 @@
             4,
             33
         ],
-        "selected_table": "Source35 - Cours-de-reference_20_04_2025-12_30.csv"
+        "selected_table": "Source35 - Cours-de-reference_22_04_2025-13_10.csv",
+        "ignore_titles": false
     },
     "Source31": {
         "separator": ";",
@@ -57,7 +59,7 @@
             3,
             32
         ],
-        "selected_table": "Source31 - Encours-des-interventions_21_04_2025-06_00.csv"
+        "selected_table": "Source31 - Encours-des-interventions_22_04_2025-04_02.csv"
     },
     "Source127": {
         "separator": ";",
@@ -102,52 +104,8 @@
             3,
             6
         ],
-        "selected_table": "Source32 - Resultats-des-emissions-de-bons-du-tresor_20_04_2025-13_01.csv"
-    },
-    "Source2_1": {
-        "separator": ";",
-        "page": 0,
-        "title_range": [
-            21,
-            21,
-            1,
-            7
-        ],
-        "data_range": [
-            22,
-            28
-        ],
-        "selected_table": "Source2_1 - STAT COM 28-03-2025 (7).xls"
-    },
-    "Source2_2": {
-        "separator": ";",
-        "page": 0,
-        "title_range": [
-            33,
-            33,
-            1,
-            5
-        ],
-        "data_range": [
-            34,
-            38
-        ],
-        "selected_table": "Source2_2 - STAT COM 28-03-2025 (7).xls"
-    },
-    "Source2_3": {
-        "separator": ";",
-        "page": 0,
-        "title_range": [
-            45,
-            45,
-            1,
-            6
-        ],
-        "data_range": [
-            46,
-            57
-        ],
-        "selected_table": "Source2_3 - STAT COM 28-03-2025 (7).xls"
+        "selected_table": "Source32 - Resultats-des-emissions-de-bons-du-tresor_22_04_2025-18_49.csv",
+        "ignore_titles": false
     },
     "Source10": {
         "separator": ";",
@@ -162,7 +120,8 @@
             1,
             24
         ],
-        "selected_table": "Source10 - table_1.html"
+        "selected_table": "Source10 - table_4.html",
+        "ignore_titles": false
     },
     "Source104": {
         "separator": ";",
@@ -252,7 +211,8 @@
             1,
             4
         ],
-        "selected_table": "Source14 - table_0.html"
+        "selected_table": "Source14 - table_4.html",
+        "ignore_titles": false
     },
     "Source33": {
         "separator": ";",
@@ -327,7 +287,8 @@
             0,
             3
         ],
-        "selected_table": "Source112 - table_6.html"
+        "selected_table": "Source112 - table_10.html",
+        "ignore_titles": false
     },
     "Source13": {
         "separator": ";",
@@ -342,7 +303,8 @@
             1,
             1
         ],
-        "selected_table": "Source13 - table_0.html"
+        "selected_table": "Source13 - table_22.html",
+        "ignore_titles": false
     },
     "Source130": {
         "separator": ";",
@@ -417,7 +379,8 @@
             1,
             4
         ],
-        "selected_table": "Source15 - table_0.html"
+        "selected_table": "Source15 - table_4.html",
+        "ignore_titles": false
     },
     "Source16": {
         "separator": ";",
@@ -447,7 +410,8 @@
             0,
             0
         ],
-        "selected_table": "Source17 - table_0.html"
+        "selected_table": "Source17 - table_2.html",
+        "ignore_titles": false
     },
     "Source18": {
         "separator": ";",
@@ -462,7 +426,8 @@
             0,
             0
         ],
-        "selected_table": "Source18 - table_0.html"
+        "selected_table": "Source18 - table_8.html",
+        "ignore_titles": false
     },
     "Source19": {
         "separator": ";",
@@ -477,7 +442,8 @@
             0,
             0
         ],
-        "selected_table": "Source19 - table_0.html"
+        "selected_table": "Source19 - table_8.html",
+        "ignore_titles": false
     },
     "Source20": {
         "separator": ";",
@@ -492,7 +458,8 @@
             0,
             0
         ],
-        "selected_table": "Source20 - table_0.html"
+        "selected_table": "Source20 - table_8.html",
+        "ignore_titles": false
     },
     "Source21": {
         "separator": ";",
@@ -507,7 +474,8 @@
             0,
             0
         ],
-        "selected_table": "Source21 - table_0.html"
+        "selected_table": "Source21 - table_8.html",
+        "ignore_titles": false
     },
     "Source22": {
         "separator": ";",
@@ -522,7 +490,8 @@
             0,
             0
         ],
-        "selected_table": "Source22 - table_0.html"
+        "selected_table": "Source22 - table_8.html",
+        "ignore_titles": false
     },
     "Source24": {
         "separator": ";",
@@ -537,7 +506,8 @@
             3,
             17
         ],
-        "selected_table": "Source24 - Operations-principales_20_04_2025-19_04 (1).csv"
+        "selected_table": "Source24 - Operations-principales_22_04_2025-14_32 (1).csv",
+        "ignore_titles": false
     },
     "Source25": {
         "separator": ";",
@@ -552,7 +522,7 @@
             3,
             188
         ],
-        "selected_table": "Source25 - Facilites-permanentes_20_04_2025-18_45.csv"
+        "selected_table": "Source25 - Facilites-permanentes_22_04_2025-14_32.csv"
     },
     "Source26": {
         "separator": ";",
@@ -567,7 +537,7 @@
             3,
             350
         ],
-        "selected_table": "Source26 - Operations-de-long-terme_20_04_2025-19_23.csv"
+        "selected_table": "Source26 - Operations-de-long-terme_22_04_2025-14_32.csv"
     },
     "Source27": {
         "separator": ";",
@@ -597,7 +567,8 @@
             3,
             1002
         ],
-        "selected_table": "Source28 - Tableau-des-performances-quotidiennes-au-16-04-2025 (2).xlsx"
+        "selected_table": "Source28 - Indice-monia-moroccan-overnight-index-average_22_04_2025-14_48.csv",
+        "ignore_titles": false
     },
     "Source29": {
         "separator": ";",
@@ -612,7 +583,8 @@
             5,
             31
         ],
-        "selected_table": "Source29 - Constitution-de-la-reserve-obligatoire_20_04_2025-16_00 (1).csv"
+        "selected_table": "Source29 - Constitution-de-la-reserve-obligatoire_22_04_2025-04_01.csv",
+        "ignore_titles": false
     },
     "Source30": {
         "separator": ";",
@@ -627,7 +599,8 @@
             3,
             12
         ],
-        "selected_table": "Source30 - Taux-de-reference-des-bons-du-tresor_21_04_2025-11_40.csv"
+        "selected_table": "Source30 - Taux-de-reference-des-bons-du-tresor_22_04_2025-19_29.csv",
+        "ignore_titles": false
     },
     "Source36": {
         "separator": ";",
@@ -642,7 +615,8 @@
             3,
             1002
         ],
-        "selected_table": "Source36 - Marche-monetaire-interbancaire_21_04_2025-03_06.csv"
+        "selected_table": "Source36 - Marche-monetaire-interbancaire_22_04_2025-14_01.csv",
+        "ignore_titles": false
     },
     "Source37": {
         "separator": ";",
@@ -1257,7 +1231,8 @@
             4,
             8
         ],
-        "selected_table": "Source77 - Taux-debiteurs_21_04_2025-07_29.csv"
+        "selected_table": "Source77 - Taux-debiteurs_22_04_2025-08_15.csv",
+        "ignore_titles": false
     },
     "Source78": {
         "separator": ";",
@@ -1272,7 +1247,7 @@
             1,
             12
         ],
-        "selected_table": "Source78 - BKAM s\u00e9rie IPSB 2022 (17).xlsx"
+        "selected_table": "Source78 - BKAM s\u00e9rie IPSB 2022 (18).xlsx"
     },
     "Source79": {
         "separator": ";",
@@ -1287,7 +1262,7 @@
             2,
             77
         ],
-        "selected_table": "Source79 - BKAM S\u00e9ries IPAI T4 2024 (14).xlsx"
+        "selected_table": "Source79 - BKAM S\u00e9ries IPAI T4 2024 (15).xlsx"
     },
     "Source80": {
         "separator": ";",
@@ -1302,7 +1277,7 @@
             1,
             86
         ],
-        "selected_table": "Source80 - BKAM Inflation et inflation sous jacente (13).xlsx"
+        "selected_table": "Source80 - BKAM Inflation et inflation sous jacente (14).xlsx"
     },
     "Source82": {
         "separator": ";",
@@ -1323,16 +1298,17 @@
         "separator": ";",
         "page": 0,
         "title_range": [
-            3,
-            3,
+            0,
+            0,
             0,
             1
         ],
         "data_range": [
-            4,
-            4
+            5,
+            6
         ],
-        "selected_table": "Source81 - 8990852.pdf"
+        "selected_table": "Source81 - 8990852.pdf",
+        "ignore_titles": true
     },
     "Source2_4": {
         "separator": ";",
@@ -1362,6 +1338,145 @@
             2,
             256
         ],
-        "selected_table": "Source1 - Tableau-des-performances-quotidiennes-au-16-04-2025.xlsx"
+        "selected_table": "Source1 - Tableau%20des%20performances%20quotidiennes%20au%2021-04-2025.xlsx.xlsx"
+    },
+    "Source105": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            1,
+            5
+        ],
+        "data_range": [
+            1,
+            74
+        ],
+        "selected_table": "Source105 - table_0.html"
+    },
+    "Source108_1": {
+        "separator": ";",
+        "page": 4,
+        "title_range": [
+            0,
+            0,
+            0,
+            2
+        ],
+        "data_range": [
+            1,
+            20
+        ],
+        "selected_table": "Source108_1 - table_0.html",
+        "ignore_titles": false
+    },
+    "Source2": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            21,
+            21,
+            1,
+            7
+        ],
+        "data_range": [
+            22,
+            28
+        ],
+        "selected_table": "Source2 - STAT_OPCVM_HEBDO_AMMC_04042025.xls"
+    },
+    "Source3": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            33,
+            33,
+            1,
+            5
+        ],
+        "data_range": [
+            34,
+            38
+        ],
+        "selected_table": "Source3 - STAT_OPCVM_HEBDO_AMMC_04042025.xls"
+    },
+    "Source4": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            45,
+            45,
+            1,
+            6
+        ],
+        "data_range": [
+            46,
+            57
+        ],
+        "selected_table": "Source4 - STAT_OPCVM_HEBDO_AMMC_04042025.xls"
+    },
+    "Source5": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            63,
+            63,
+            1,
+            9
+        ],
+        "data_range": [
+            64,
+            65
+        ],
+        "selected_table": "Source5 - STAT_OPCVM_HEBDO_AMMC_04042025.xls"
+    },
+    "Source108_3": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            1
+        ],
+        "data_range": [
+            0,
+            6
+        ],
+        "selected_table": "Source108_3 - table_0.html",
+        "ignore_titles": true
+    },
+    "Source108_2": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            1
+        ],
+        "data_range": [
+            0,
+            6
+        ],
+        "selected_table": "Source108_2 - table_0.html",
+        "ignore_titles": true
+    },
+    "Source23": {
+        "separator": ";",
+        "page": 0,
+        "title_range": [
+            0,
+            0,
+            0,
+            1
+        ],
+        "data_range": [
+            1,
+            12
+        ],
+        "selected_table": "Source23 - av-2025-038_fr.pdf.pdf",
+        "ignore_titles": false
     }
 }
