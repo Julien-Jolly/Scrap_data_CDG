@@ -1,11 +1,29 @@
-.idea/*
-.venv/*
+# Dossiers de l'environnement de développement
+.venv/
+.idea/
+__pycache__/
+
+# Fichiers de travail temporaires
 temp.py
-Downloads/*
-database.db
 *.log
-matrice_sources.xlsx
-logs/*
 *.zip
-~$matrice_sources - Copie.xlsx
+*.exe
+
+# Téléchargements et fichiers de données
+Downloads/
+database.db
+logs/
+
+# Fichiers Excel temporaires ou spécifiques
 matrice_sources - Copie.xlsx
+~$matrice_sources - Copie.xlsx
+matrice_sources.xlsx
+
+# Build PyInstaller
+build/
+dist/
+*.spec
+
+# (optionnel) pour éviter les fichiers .DS_Store, Thumbs.db, etc.
+.DS_Store
+Thumbs.db

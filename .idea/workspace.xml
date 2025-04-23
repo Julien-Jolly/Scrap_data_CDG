@@ -5,9 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9c4f2f80-f517-46c4-8bc8-3b88324d6a3c" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cli.py" beforeDir="false" afterPath="$PROJECT_DIR$/cli.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/database.db" beforeDir="false" afterPath="$PROJECT_DIR$/database.db" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/download_script.log" beforeDir="false" afterPath="$PROJECT_DIR$/download_script.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/source_settings.json" beforeDir="false" afterPath="$PROJECT_DIR$/source_settings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/config.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/downloader.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/downloader.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -34,25 +37,29 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.Debug Playwright.executor&quot;: &quot;Run&quot;,
-    &quot;Python.Sans DEBUG.executor&quot;: &quot;Run&quot;,
-    &quot;Python.app.executor&quot;: &quot;Run&quot;,
-    &quot;Python.temp.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/Julien/PycharmProjects/PythonProject/Scrap_data_CDG&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.Debug Playwright.executor": "Run",
+    "Python.Sans DEBUG.executor": "Run",
+    "Python.app.executor": "Run",
+    "Python.diagnostic_env.executor": "Run",
+    "Python.run_streamlit.executor": "Run",
+    "Python.run_streamlit_launcher.executor": "Run",
+    "Python.temp.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "develop",
+    "last_opened_file_path": "C:/Users/Julien/PycharmProjects/PythonProject/Scrap_data_CDG",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Julien\PycharmProjects\PythonProject\Scrap_data_CDG\pyinstaller_hooks" />
       <recent name="C:\Users\Julien\PycharmProjects\PythonProject\Scrap_data_CDG\src" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.Debug Playwright">
+  <component name="RunManager">
     <configuration name="Debug Playwright" type="PythonConfigurationType" factoryName="Python">
       <module name="Scrap_data_CDG" />
       <option name="ENV_FILES" value="" />

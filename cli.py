@@ -521,7 +521,7 @@ def process_and_insert(db_path, downloaded_sources, download_errors):
     summary_logger.info("\n")
 
 
-def main():
+def main(args_list=None):
     parser = argparse.ArgumentParser(
         description="CLI pour le traitement des sources et l'insertion dans une BDD SQLite.")
     subparsers = parser.add_subparsers(dest="command")
@@ -532,7 +532,8 @@ def main():
     parser_process = subparsers.add_parser("process_only", help="Traite les fichiers existants et insère dans la BDD")
     parser_process.add_argument("--db_path", default="database.db", help="Chemin vers la base de données SQLite")
 
-    args = parser.parse_args()
+    # 🔁 Change ici pour pouvoir appeler main(["download_and_process"]) depuis un autre script
+    args = parser.parse_args(args_list)
 
     if args.command == "download_and_process":
         download_and_process(args)
