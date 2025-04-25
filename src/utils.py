@@ -5,6 +5,11 @@ from datetime import datetime, timedelta
 from sqlalchemy import create_engine, text, inspect
 import numpy as np
 from src.config import SOURCE_FILE
+import logging
+import sqlite3
+
+logger = logging.getLogger(__name__)
+
 
 
 def load_excel_data():
@@ -62,60 +67,79 @@ def delete_existing_data_for_date(engine, table_name, extraction_date):
                 raise
 
 
-def adjust_dataframe_to_table(df, engine, table_name):
-    """
-    Ajuste le DataFrame pour qu'il corresponde à la structure de la table existante.
-    Ajoute les colonnes manquantes avec des valeurs NULL et ignore les colonnes supplémentaires.
-    """
-    inspector = inspect(engine)
-    if table_name not in inspector.get_table_names():
-        return df  # Si la table n'existe pas, on retourne le DataFrame tel quel
+def adjust_dataframe_to_table(df, table_name, db_path):
+    """Ajuste le DataFrame pour correspondre à la structure de la table SQL."""
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
 
-    # Récupérer les colonnes de la table existante
-    existing_columns = {col['name'] for col in inspector.get_columns(table_name)}
-    df_columns = set(df.columns)
+    # Récupérer les colonnes de la table
+    cursor.execute(f"PRAGMA table_info({table_name})")
+    table_columns = [row[1] for row in cursor.fetchall()]
 
-    # Ajouter les colonnes manquantes dans le DataFrame
-    missing_in_df = existing_columns - df_columns
-    for col in missing_in_df:
-        df[col] = None
+    # Conserver uniquement les colonnes du DataFrame qui existent dans la table
+    common_columns = [col for col in df.columns if col in table_columns]
+    if not common_columns:
+        logger.error(f"Aucune colonne commune entre le DataFrame et la table {table_name}")
+        conn.close()
+        raise ValueError(f"Aucune colonne commune entre le DataFrame et la table {table_name}")
 
-    # Ignorer les colonnes du DataFrame qui ne sont pas dans la table
-    columns_to_keep = list(df_columns & existing_columns)
-    if not columns_to_keep:
-        raise ValueError(
-            f"Aucune colonne commune entre le DataFrame {list(df_columns)} et la table {list(existing_columns)}."
-        )
-    adjusted_df = df[columns_to_keep + list(missing_in_df)]
+    adjusted_df = df[common_columns]
 
+    # Ajouter les colonnes manquantes avec des valeurs NULL
+    for col in table_columns:
+        if col not in adjusted_df.columns:
+            adjusted_df[col] = None
+
+    conn.close()
+    logger.debug(f"Colonnes ajustées pour {table_name}: {adjusted_df.columns.tolist()}")
     return adjusted_df
 
 
 def insert_dataframe_to_sql(df, table_name, db_path):
-    """
-    Insère un DataFrame dans une table SQL avec suppression des données existantes pour la même date.
-    Ajuste le DataFrame pour qu'il corresponde à la table existante sans la supprimer.
-    """
-    # Nettoyer les noms des colonnes
-    clean_columns = [clean_column_name(col, idx) for idx, col in enumerate(df.columns)]
-    df_clean = df.copy()
-    df_clean.columns = clean_columns
+    """Insère un DataFrame dans une table SQL en mode append, après suppression des données du même jour pour la même source."""
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
 
-    # Connexion à la base de données
-    engine = create_engine(f"sqlite:///{db_path}")
+        # Vérifier que le DataFrame contient les colonnes nécessaires
+        if 'source_name' not in df.columns or 'extraction_datetime' not in df.columns:
+            logger.error(f"Le DataFrame doit contenir les colonnes 'source_name' et 'extraction_datetime'")
+            conn.close()
+            raise ValueError("Le DataFrame doit contenir les colonnes 'source_name' et 'extraction_datetime'")
 
-    # Supprimer les données existantes pour la date actuelle
-    if 'extraction_datetime' in df_clean.columns:
-        max_date = pd.to_datetime(df_clean['extraction_datetime']).max()
-        delete_existing_data_for_date(engine, table_name, max_date)
-    else:
-        delete_existing_data_for_date(engine, table_name, datetime.now())
+        # Récupérer la source et la date d'extraction (tronquée au jour)
+        source_name = df['source_name'].iloc[0]
+        extraction_dates = pd.to_datetime(df['extraction_datetime']).dt.date
+        if extraction_dates.empty:
+            logger.error(f"Aucune date d'extraction valide dans le DataFrame pour {source_name}")
+            conn.close()
+            raise ValueError("Aucune date d'extraction valide dans le DataFrame")
 
-    # Ajuster le DataFrame pour qu'il corresponde à la table existante
-    df_clean = adjust_dataframe_to_table(df_clean, engine, table_name)
+        extraction_date = extraction_dates.iloc[0].strftime('%Y-%m-%d')
 
-    # Insérer les données
-    df_clean.to_sql(table_name, engine, if_exists='append', index=False)
+        # Supprimer les données existantes pour la même source et le même jour
+        delete_query = """
+        DELETE FROM extractions
+        WHERE source_name = ? AND DATE(extraction_datetime) = ?
+        """
+        cursor.execute(delete_query, (source_name, extraction_date))
+        deleted_rows = cursor.rowcount
+        logger.debug(f"Supprimé {deleted_rows} lignes pour source {source_name} et date {extraction_date}")
+
+        # Ajuster le DataFrame à la structure de la table
+        adjusted_df = adjust_dataframe_to_table(df, table_name, db_path)
+
+        # Insérer les données en mode append
+        adjusted_df.to_sql(table_name, conn, if_exists='append', index=False)
+
+        logger.debug(
+            f"Insertion réussie de {len(adjusted_df)} lignes dans {table_name} pour source {source_name} avec colonnes {adjusted_df.columns.tolist()}")
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Erreur lors de l'insertion dans {table_name} pour source {source_name}: {str(e)}")
+        conn.close()
+        raise
 
 
 def load_previous_data(source, db_path, date_str):
@@ -138,6 +162,7 @@ def check_cell_changes(df_current, df_previous, source):
     """
     Vérifie les changements de types ou de nature des valeurs dans les cellules entre le jour actuel et la veille.
     Ignore les cas où une cellule est vide (NaN, None, '-') dans l'un des DataFrames.
+    Gère les valeurs numériques avec espaces (ex. : '0 000' → '0000').
     Retourne une liste d'anomalies (informatif).
     """
     anomalies = []
@@ -162,23 +187,33 @@ def check_cell_changes(df_current, df_previous, source):
             current_is_empty = pd.isna(current_value) or current_value in empty_values
             previous_is_empty = pd.isna(previous_value) or previous_value in empty_values
 
-            # Ignorer si l'une des valeurs est vide
             if current_is_empty or previous_is_empty:
                 continue
 
             try:
+                # Nettoyer les valeurs pour gérer les espaces dans les nombres
+                if isinstance(current_value, str):
+                    current_clean = current_value.replace(" ", "")
+                else:
+                    current_clean = current_value
+
+                if isinstance(previous_value, str):
+                    previous_clean = previous_value.replace(" ", "")
+                else:
+                    previous_clean = previous_value
+
                 # Déterminer les types
-                current_type = type(current_value).__name__
-                previous_type = type(previous_value).__name__
+                current_type = type(current_clean).__name__
+                previous_type = type(previous_clean).__name__
 
                 # Convertir les types numpy en types Python
-                if isinstance(current_value, np.floating):
+                if isinstance(current_clean, np.floating):
                     current_type = 'float'
-                if isinstance(previous_value, np.floating):
+                if isinstance(previous_clean, np.floating):
                     previous_type = 'float'
-                if isinstance(current_value, np.integer):
+                if isinstance(current_clean, np.integer):
                     current_type = 'int'
-                if isinstance(previous_value, np.integer):
+                if isinstance(previous_clean, np.integer):
                     previous_type = 'int'
 
                 # Vérifier les changements de type
@@ -188,13 +223,13 @@ def check_cell_changes(df_current, df_previous, source):
 
                 # Vérifier les changements de nature (numérique vs texte)
                 try:
-                    float(current_value)
+                    current_numeric = float(current_clean)
                     current_is_numeric = True
                 except (ValueError, TypeError):
                     current_is_numeric = False
 
                 try:
-                    float(previous_value)
+                    previous_numeric = float(previous_clean)
                     previous_is_numeric = True
                 except (ValueError, TypeError):
                     previous_is_numeric = False
@@ -202,6 +237,11 @@ def check_cell_changes(df_current, df_previous, source):
                 if current_is_numeric != previous_is_numeric:
                     anomalies.append(
                         f"Changement de nature dans la colonne {col}, ligne {idx + 1} (actuel : {'numérique' if current_is_numeric else 'texte'}, veille : {'numérique' if previous_is_numeric else 'texte'}, valeur actuelle : {current_value}, valeur veille : {previous_value}).")
+
+                # Comparer les valeurs numériques nettoyées
+                if current_is_numeric and previous_is_numeric and current_numeric != previous_numeric:
+                    anomalies.append(
+                        f"Différence numérique dans la colonne {col}, ligne {idx + 1} (actuel : {current_numeric}, veille : {previous_numeric}).")
 
             except Exception as e:
                 anomalies.append(f"Erreur lors de la vérification dans la colonne {col}, ligne {idx + 1} : {str(e)}.")

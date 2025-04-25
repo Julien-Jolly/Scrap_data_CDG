@@ -2,85 +2,53 @@
 import streamlit as st
 import pandas as pd
 import os
+import json
 from datetime import datetime
-from src.parser import get_downloaded_files, parse_file, extract_data, get_source_settings, update_source_settings, \
-    load_settings
-from src.utils import load_excel_data, make_unique_titles
+from src.parser import get_downloaded_files, parse_file
+from src.utils import load_excel_data
 from src.config import get_download_dir
-import sqlite3
 import logging
 
 # Configurer le logging
 logging.basicConfig(level=logging.DEBUG, format='%(levelname)s:%(name)s:%(message)s')
 logger = logging.getLogger(__name__)
 
+# Chemin du fichier JSON pour sauvegarder les sélections
+SELECTIONS_JSON_PATH = os.path.join(os.path.dirname(__file__), "..", "selections.json")
 
-def create_table_if_not_exists(source, columns):
-    """Crée une table SQLite pour la source si elle n'existe pas."""
+def load_selections():
+    """Charge les sélections depuis le fichier JSON. Retourne un dictionnaire vide si le fichier n'existe pas."""
     try:
-        conn = sqlite3.connect("scrap_data.db")
-        cursor = conn.cursor()
-
-        # Créer un nom de table valide (remplacer les espaces et caractères spéciaux)
-        table_name = source.replace(" ", "_").replace("-", "_")
-
-        # Créer une requête pour créer la table
-        columns_def = ", ".join([f'"{col}" TEXT' for col in columns])
-        create_query = f"""
-        CREATE TABLE IF NOT EXISTS {table_name} (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            {columns_def},
-            extraction_date TEXT
-        )
-        """
-        cursor.execute(create_query)
-        conn.commit()
-        logger.debug(f"Tableau {table_name} créé ou déjà existant avec colonnes: {columns}")
+        if os.path.exists(SELECTIONS_JSON_PATH):
+            with open(SELECTIONS_JSON_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return {}
     except Exception as e:
-        logger.error(f"Erreur lors de la création de la table {table_name}: {e}")
-        raise
-    finally:
-        conn.close()
+        logger.error(f"Erreur lors du chargement de {SELECTIONS_JSON_PATH}: {e}")
+        return {}
 
-
-def insert_data_to_db(source, df):
-    """Insère les données du DataFrame dans la table correspondante."""
+def save_selections(selections_data):
+    """Sauvegarde les sélections dans le fichier JSON."""
     try:
-        conn = sqlite3.connect("scrap_data.db")
-        cursor = conn.cursor()
-
-        table_name = source.replace(" ", "_").replace("-", "_")
-        columns = df.columns.tolist()
-        placeholders = ", ".join(["?" for _ in columns])
-        columns_str = ", ".join([f'"{col}"' for col in columns])
-
-        # Ajouter la colonne extraction_date
-        columns_str += ", extraction_date"
-        placeholders += ", ?"
-
-        insert_query = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
-
-        extraction_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        for _, row in df.iterrows():
-            values = tuple(row) + (extraction_date,)
-            cursor.execute(insert_query, values)
-
-        conn.commit()
-        logger.debug(f"Données insérées dans {table_name}: {df.to_dict()}")
+        with open(SELECTIONS_JSON_PATH, "w", encoding="utf-8") as f:
+            json.dump(selections_data, f, indent=2)
+        logger.debug(f"Sélections sauvegardées dans {SELECTIONS_JSON_PATH}")
     except Exception as e:
-        logger.error(f"Erreur lors de l'insertion dans {table_name}: {e}")
-        raise
-    finally:
-        conn.close()
-
+        logger.error(f"Erreur lors de la sauvegarde de {SELECTIONS_JSON_PATH}: {e}")
+        st.error(f"Erreur lors de la sauvegarde des sélections : {e}")
 
 def extract_section():
-    """Affiche la section 'Analyse et Extraction des Données' avec sélection de date et tableau des sources non paramétrées."""
-    st.header("Analyse et Extraction des Données")
+    """Affiche la section 'Analyse et Extraction des Données' avec sélection de date, tableau des sources et paramétrage multiple."""
+    st.header("Analyse et Extraction des Données", anchor=False)
 
     # Charger les données Excel
     df = load_excel_data()
     columns = df.columns.tolist()
+
+    # Vérifier si la colonne 10 existe
+    if len(columns) < 11:  # Colonne 10 correspond à l'index 10 (0-based)
+        st.error("Le fichier Excel ne contient pas la colonne 10. Vérifiez sa structure.")
+        return
 
     # Récupérer toutes les sources depuis le fichier Excel
     all_sources = df[columns[0]].unique().tolist()
@@ -89,20 +57,39 @@ def extract_section():
         st.warning("Aucune source trouvée dans le fichier Excel.")
         return
 
-    # Sélectionner une source
-    selected_source = st.selectbox("Sélectionner une source", all_sources)
+    # Section Source
+    with st.container():
+        st.subheader("Sélection de la Source", anchor=False)
+        selected_source = st.selectbox(
+            "Sélectionner une source",
+            all_sources,
+            key="source_select",
+            help="Choisissez une source dans la liste extraite du fichier Excel."
+        )
 
-    # Récupérer le nom de la source (colonne 7)
-    source_name = df[df[columns[0]] == selected_source][columns[7]].iloc[0] if len(
-        df[df[columns[0]] == selected_source]) > 0 else selected_source
+        # Récupérer le nom de la source (colonne 7) et la colonne 10
+        source_name = df[df[columns[0]] == selected_source][columns[7]].iloc[0] if len(
+            df[df[columns[0]] == selected_source]) > 0 else selected_source
+        column_10_value = df[df[columns[0]] == selected_source][columns[10]].iloc[0] if len(
+            df[df[columns[0]] == selected_source]) > 0 else "Non défini"
+
+        # Afficher le nom de la source et la colonne 10 avec style
+        st.markdown(f"**Nom de la source** : {source_name}")
+        st.markdown(f"**Information** : {column_10_value}")
 
     # Sélecteur de date
-    st.write(f"**Nom de la source :** {source_name}")
-    default_date = datetime.now().strftime("%m-%d")
-    available_dates = [d for d in os.listdir(os.path.join(os.path.dirname(__file__), "..", "Downloads"))
-                       if os.path.isdir(os.path.join(os.path.dirname(__file__), "..", "Downloads", d))]
-    selected_date = st.selectbox("Date de l'extraction", available_dates,
-                                 index=available_dates.index(default_date) if default_date in available_dates else 0)
+    with st.container():
+        st.subheader("Date de l'Extraction", anchor=False)
+        default_date = datetime.now().strftime("%m-%d")
+        available_dates = [d for d in os.listdir(os.path.join(os.path.dirname(__file__), "..", "Downloads"))
+                           if os.path.isdir(os.path.join(os.path.dirname(__file__), "..", "Downloads", d))]
+        selected_date = st.selectbox(
+            "Date de l'extraction",
+            available_dates,
+            index=available_dates.index(default_date) if default_date in available_dates else 0,
+            key="date_select",
+            help="Sélectionnez la date correspondant au dossier de téléchargement."
+        )
 
     # Charger les fichiers pour la date sélectionnée
     download_dir = get_download_dir(selected_date)
@@ -114,36 +101,15 @@ def extract_section():
         return
 
     file_paths = downloaded_files[selected_source]
-    previous_source = st.session_state.get("last_source")
-    st.session_state["last_source"] = selected_source
-
-    # Charger les paramètres de la source
-    settings = get_source_settings(selected_source)
-    default_separator = settings.get("separator", ";")
-    default_page = settings.get("page", 0)
-    default_title_range = settings.get("title_range", [0, 0, 0, 5])
-    default_data_range = settings.get("data_range", [1, 10])
-    default_selected_table = settings.get("selected_table")
-    default_ignore_titles = settings.get("ignore_titles", False)
-
-    default_title_start_row = default_title_range[0]
-    default_title_end_row = default_title_range[1]
-    default_title_col_start = default_title_range[2]
-    default_title_col_end = default_title_range[3]
-
-    if "temp_data_row_start" not in st.session_state or previous_source != selected_source:
-        st.session_state["temp_data_row_start"] = default_data_range[0]
-    if "temp_data_row_end" not in st.session_state or previous_source != selected_source:
-        st.session_state["temp_data_row_end"] = default_data_range[1]
 
     # Charger les tableaux
-    cache_key = f"{selected_source}_{selected_date}_{default_page}"
+    cache_key = f"{selected_source}_{selected_date}"
     if ("raw_tables" not in st.session_state or
             st.session_state.get("last_cache_key") != cache_key):
         raw_tables = {}
         for file_path in file_paths:
             try:
-                table_data = parse_file(file_path, default_separator, default_page, selected_columns=None)
+                table_data = parse_file(file_path, separator=";", page=0, selected_columns=None)
                 if table_data:
                     table_name = os.path.basename(file_path)
                     raw_tables[table_name] = table_data
@@ -154,19 +120,18 @@ def extract_section():
     else:
         raw_tables = st.session_state["raw_tables"]
 
-    col1, col2 = st.columns([1, 1])
-
-    with col1:
-        st.write("### Contenu brut")
+    # Afficher le contenu brut sur toute la largeur
+    with st.container():
+        st.subheader("Contenu Brut", anchor=False)
         if not raw_tables:
-            st.warning(f"Aucun contenu extrait. Vérifiez les fichiers ou les paramètres.")
+            st.warning(f"Aucun contenu extrait. Vérifiez les fichiers.")
             raw_data = []  # Initialiser raw_data pour éviter UnboundLocalError
         else:
             selected_table = st.selectbox(
                 "Sélectionner un tableau",
                 list(raw_tables.keys()),
-                index=list(raw_tables.keys()).index(
-                    default_selected_table) if default_selected_table in raw_tables else 0
+                key="table_select",
+                help="Choisissez un fichier parmi les fichiers téléchargés pour cette source."
             )
             raw_data = raw_tables[selected_table]
             if not raw_data:
@@ -177,120 +142,182 @@ def extract_section():
                 df_raw = pd.DataFrame(raw_data)
                 st.dataframe(df_raw, use_container_width=True, height=400)
 
-    with col2:
-        st.write("### Paramétrage de l'extraction")
-        separator = st.text_input("Séparateur (pour CSV)", value=default_separator)
-        page_to_extract = st.number_input("Page à extraire (PDF uniquement)", min_value=0, value=default_page, step=1)
-
-        st.write("#### Plage des titres")
+    # Paramétrage sous le contenu brut
+    with st.container():
+        st.subheader("Paramétrage de l'Extraction", anchor=False)
         raw_data_defined = 'raw_data' in locals() and raw_data is not None and len(raw_data) > 0
         max_rows = len(raw_data) if raw_data_defined else 1
         max_cols = max(len(row) for row in raw_data) if raw_data_defined else 1
 
-        # Option pour ignorer les titres
-        ignore_titles = st.checkbox("Ignorer les titres (utiliser Titre 1, Titre 2, ...)", value=default_ignore_titles)
+        # Charger les sélections existantes pour la source (indépendant de la date)
+        selections_data = load_selections()
+        saved_selections = selections_data.get(selected_source, [])
 
-        if not ignore_titles:
-            title_row_start = st.number_input("Ligne début titres", min_value=0, max_value=max_rows - 1,
-                                              value=min(default_title_start_row, max_rows - 1))
-            default_title_end_row_adjusted = max(title_row_start, default_title_end_row)
-            title_row_end = st.number_input("Ligne fin titres", min_value=title_row_start, max_value=max_rows - 1,
-                                            value=min(default_title_end_row_adjusted, max_rows - 1))
-        else:
-            title_row_start, title_row_end = 0, 0  # Valeurs par défaut inutilisées
-            st.info(
-                "Les titres seront générés automatiquement (Titre 1, Titre 2, ...) en fonction du nombre de colonnes des données.")
+        # Détecter un changement de source
+        if "last_source" not in st.session_state or st.session_state.last_source != selected_source:
+            # Réinitialiser num_combinations et selections pour la nouvelle source
+            st.session_state.num_combinations = len(saved_selections) if saved_selections else 1
+            st.session_state.selections = saved_selections if saved_selections else []
+            st.session_state.last_source = selected_source
 
-        # Champs pour les colonnes, toujours visibles
-        title_col_start = st.number_input("Colonne début", min_value=0, max_value=max_cols - 1,
-                                          value=min(default_title_col_start, max_cols - 1))
-        default_title_col_end_adjusted = max(title_col_start, default_title_col_end)
-        title_col_end = st.number_input("Colonne fin", min_value=title_col_start, max_value=max_cols - 1,
-                                        value=min(default_title_col_end_adjusted, max_cols - 1))
+        # Compteur pour le nombre de combinaisons titre + plage de données
+        num_combinations = st.number_input(
+            "Nombre de combinaisons titre + plage de données",
+            min_value=1,
+            value=st.session_state.num_combinations,
+            step=1,
+            key="num_combinations",
+            help="Indiquez combien de champs (titre + données) vous souhaitez extraire."
+        )
 
-        st.write("#### Plage des données")
-        data_row_start = st.number_input("Ligne début données", min_value=0, max_value=max_rows - 1,
-                                         value=min(st.session_state["temp_data_row_start"], max_rows - 1),
-                                         key="data_row_start_input")
-        st.session_state["temp_data_row_start"] = data_row_start
+        # Formulaire pour chaque combinaison
+        selections = []
+        for i in range(num_combinations):
+            st.markdown(f"**Combinaison {i + 1}**")
+            with st.expander(f"Configuration de la Combinaison {i + 1}", expanded=True):
+                # Charger les valeurs par défaut depuis les sélections sauvegardées
+                default_values = next((s for s in saved_selections if s["combination"] == i + 1), {})
 
-        default_data_row_end = max(data_row_start, st.session_state["temp_data_row_end"])
-        data_row_end = st.number_input("Ligne fin données", min_value=data_row_start, max_value=max_rows - 1,
-                                       value=min(default_data_row_end, max_rows - 1),
-                                       key="data_row_end_input")
-        st.session_state["temp_data_row_end"] = data_row_end
+                # Sélection du titre
+                st.markdown("**Titre**")
+                cols_title = st.columns([1, 1])
+                with cols_title[0]:
+                    title_row = st.number_input(
+                        "Ligne du titre",
+                        min_value=0,
+                        max_value=max_rows - 1,
+                        value=default_values.get("title_row", 0),
+                        key=f"title_row_{i}",
+                        help="Indiquez la ligne où se trouve le titre."
+                    )
+                with cols_title[1]:
+                    title_col = st.number_input(
+                        "Colonne du titre",
+                        min_value=0,
+                        max_value=max_cols - 1,
+                        value=default_values.get("title_col", 0),
+                        key=f"title_col_{i}",
+                        help="Indiquez la colonne où se trouve le titre."
+                    )
 
-        if st.button("Mettre à jour le contenu"):
-            raw_tables = {}
-            for file_path in file_paths:
+                # Tags Date et Time
+                st.markdown("**Type de champ**")
+                cols_tags = st.columns([1, 1])
+                with cols_tags[0]:
+                    is_date = st.checkbox(
+                        "Date",
+                        value=default_values.get("is_date", False),
+                        key=f"is_date_{i}",
+                        help="Cochez si ce champ représente une date."
+                    )
+                with cols_tags[1]:
+                    is_time = st.checkbox(
+                        "Time",
+                        value=default_values.get("is_time", False),
+                        key=f"is_time_{i}",
+                        help="Cochez si ce champ représente une heure."
+                    )
+
+                # Sélection de la plage de données
+                st.markdown("**Plage de données**")
+                data_col = st.number_input(
+                    "Colonne des données",
+                    min_value=0,
+                    max_value=max_cols - 1,
+                    value=default_values.get("data_col", 0),
+                    key=f"data_col_{i}",
+                    help="Indiquez la colonne où se trouvent les données."
+                )
+                cols_data = st.columns([1, 1])
+                with cols_data[0]:
+                    data_row_start = st.number_input(
+                        "Ligne début données",
+                        min_value=0,
+                        max_value=max_rows - 1,
+                        value=default_values.get("data_row_start", 1),
+                        key=f"data_row_start_{i}",
+                        help="Indiquez la première ligne des données."
+                    )
+                with cols_data[1]:
+                    data_row_end = st.number_input(
+                        "Ligne fin données",
+                        min_value=data_row_start,
+                        max_value=max_rows - 1,
+                        value=default_values.get("data_row_end", min(data_row_start + 9, max_rows - 1)),
+                        key=f"data_row_end_{i}",
+                        help="Indiquez la dernière ligne des données."
+                    )
+
+                # Stocker la sélection
+                selections.append({
+                    "combination": i + 1,
+                    "title_row": title_row,
+                    "title_col": title_col,
+                    "is_date": is_date,
+                    "is_time": is_time,
+                    "data_col": data_col,
+                    "data_row_start": data_row_start,
+                    "data_row_end": data_row_end
+                })
+
+        # Bouton pour sauvegarder les sélections
+        if st.button("Sauvegarder les sélections", key="save_selections"):
+            # Mettre à jour les sélections dans selections_data (indépendant de la date)
+            selections_data[selected_source] = selections
+            # Sauvegarder dans le fichier JSON
+            save_selections(selections_data)
+            # Mettre à jour st.session_state.selections
+            st.session_state.selections = selections
+            st.success("Sélections sauvegardées avec succès.")
+
+    # Afficher les données extraites
+    with st.container():
+        st.subheader("Données Extraites", anchor=False)
+        if st.session_state.selections:
+            extracted_data = []
+            for sel in st.session_state.selections:
                 try:
-                    table_data = parse_file(file_path, separator, page_to_extract, selected_columns=None)
-                    if table_data:
-                        table_name = os.path.basename(file_path)
-                        raw_tables[table_name] = table_data
-                except Exception as e:
-                    st.error(f"Erreur de parsing pour {file_path}: {e}")
-            st.session_state["raw_tables"] = raw_tables
-            st.session_state["last_cache_key"] = f"{selected_source}_{selected_date}_{page_to_extract}"
-            st.session_state["last_page"] = page_to_extract
-            st.success("Contenu mis à jour avec succès.")
-            st.rerun()
-
-        if st.button("Appliquer et Sauvegarder"):
-            title_range = [title_row_start, title_row_end, title_col_start, title_col_end]
-            data_range = [st.session_state["temp_data_row_start"], st.session_state["temp_data_row_end"]]
-            update_source_settings(selected_source, separator, page_to_extract, title_range, data_range, selected_table,
-                                   ignore_titles)
-
-            if raw_data:
-                titles, data = extract_data(raw_data, title_range, data_range, ignore_titles)
-                if not data:
-                    st.error("Aucune donnée extraite. Vérifiez la plage des données.")
-                else:
-                    data_col_count = max(len(row) for row in data) if data else 0
-                    if ignore_titles:
-                        # Générer des titres automatiques
-                        titles = [f"Titre {i + 1}" for i in range(data_col_count)]
-                    if len(titles) != data_col_count:
-                        st.error(
-                            f"Les titres ({len(titles)} colonnes) ne correspondent pas aux données ({data_col_count} colonnes). Ajustez les plages ou activez 'Ignorer les titres'.")
+                    # Extraire la valeur du titre
+                    title_value = raw_data[sel["title_row"]][sel["title_col"]] if raw_data_defined else "Non disponible"
+                    # Déterminer le titre à afficher
+                    if sel["is_date"] and sel["is_time"]:
+                        title_display = "DateTime"
+                    elif sel["is_date"]:
+                        title_display = "Date"
+                    elif sel["is_time"]:
+                        title_display = "Time"
                     else:
-                        unique_titles = make_unique_titles(titles)
+                        title_display = title_value
+
+                    # Extraire les données
+                    data_values = []
+                    for row_idx in range(sel["data_row_start"], sel["data_row_end"] + 1):
                         try:
-                            df_extracted = pd.DataFrame(data, columns=unique_titles)
-                            st.write("### Titres extraits")
-                            st.dataframe(pd.DataFrame([unique_titles]), use_container_width=True)
-                            st.write("### Données extraites")
-                            st.dataframe(df_extracted, use_container_width=True)
-                            st.success(f"Paramètres sauvegardés pour {selected_source}.")
-                            # Stocker les données extraites dans st.session_state
-                            st.session_state["extracted_data"] = df_extracted
-                        except ValueError as e:
-                            st.error(f"Erreur lors de la création du DataFrame : {e}. Vérifiez les données extraites.")
-                        except Exception as e:
-                            st.error(f"Erreur inattendue : {e}. Contactez le support technique.")
-            else:
-                st.error(f"Aucune donnée extraite pour la page {page_to_extract}. Vérifiez le fichier.")
+                            value = raw_data[row_idx][sel["data_col"]] if raw_data_defined else "Non disponible"
+                            data_values.append(value)
+                        except IndexError:
+                            data_values.append("Erreur : indice hors limites")
 
-        # Bouton pour insérer en base de données
-        if "extracted_data" in st.session_state and st.button("Insérer en base de données"):
-            df_extracted = st.session_state["extracted_data"]
-            try:
-                create_table_if_not_exists(selected_source, df_extracted.columns)
-                insert_data_to_db(selected_source, df_extracted)
-                st.success(f"Données insérées avec succès dans la table pour {selected_source}.")
-            except Exception as e:
-                st.error(f"Erreur lors de l'insertion en base de données : {e}")
+                    extracted_data.append({
+                        "Titre": title_display,
+                        "Données": data_values
+                    })
+                except IndexError:
+                    extracted_data.append({
+                        "Titre": "Erreur : indice hors limites",
+                        "Données": ["Erreur : impossible d'extraire les données"]
+                    })
 
-    # Tableau des sources non paramétrées
-    st.write("### Sources non paramétrées")
-    settings = load_settings()
-    parametrized_sources = list(settings.keys())
-    non_parametrized_sources = [source for source in all_sources if source not in parametrized_sources]
+            # Afficher les données extraites
+            for data in extracted_data:
+                st.markdown(f"**{data['Titre']}**")
+                if data["Données"]:
+                    df_data = pd.DataFrame(data["Données"], columns=[data["Titre"]])
+                    st.dataframe(df_data, use_container_width=True, height=200)
+                else:
+                    st.warning("Aucune donnée extraite pour ce champ.")
+        else:
+            st.info("Aucune donnée extraite. Sauvegardez les sélections pour voir les résultats.")
 
-    if not non_parametrized_sources:
-        st.info("Toutes les sources sont paramétrées.")
-    else:
-        non_parametrized_data = df[df[columns[0]].isin(non_parametrized_sources)][[columns[0], columns[1], columns[5]]]
-        non_parametrized_data.columns = ["Source", "Type d'extraction", "Commentaires"]
-        st.dataframe(non_parametrized_data, use_container_width=True)
+if __name__ == "__main__":
+    extract_section()
