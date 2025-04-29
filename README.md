@@ -38,12 +38,27 @@ Les bibliothèques nécessaires sont listées dans `requirements.txt`. Les princ
 
 Créer un environnement virtuel (recommandé) :
 
-python -m venv venv
-.\venv\Scripts\activate  # Windows
+python -m venv .venv
+
+.venv\Scripts\activate  
+
 
 Installer les dépendances :
 
 pip install -r requirements.txt
+
+
+Lancer interface streamlit :
+streamlit run main.py
+
+lancer commandes cli :
+
+python cli.py download_and_process --db_path database.db
+
+ou
+
+python cli.py process_only --db_path database.db
+
 
 
 Configurer le fichier Excel :

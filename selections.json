@@ -96,5 +96,27 @@
       "data_row_start": 34,
       "data_row_end": 38
     }
+  ],
+  "Source23": [
+    {
+      "combination": 1,
+      "title_row": 9,
+      "title_col": 0,
+      "is_date": false,
+      "is_time": false,
+      "data_col": 1,
+      "data_row_start": 9,
+      "data_row_end": 9
+    },
+    {
+      "combination": 2,
+      "title_row": 10,
+      "title_col": 0,
+      "is_date": false,
+      "is_time": false,
+      "data_col": 1,
+      "data_row_start": 10,
+      "data_row_end": 10
+    }
   ]
 }
