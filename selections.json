@@ -52,7 +52,7 @@
       "is_time": false,
       "data_col": 0,
       "data_row_start": 3,
-      "data_row_end": 32
+      "data_row_end": 3
     },
     {
       "combination": 2,
@@ -62,7 +62,7 @@
       "is_time": false,
       "data_col": 1,
       "data_row_start": 3,
-      "data_row_end": 32
+      "data_row_end": 3
     },
     {
       "combination": 3,
@@ -72,7 +72,7 @@
       "is_time": false,
       "data_col": 5,
       "data_row_start": 3,
-      "data_row_end": 32
+      "data_row_end": 3
     }
   ],
   "Source3": [
@@ -117,6 +117,108 @@
       "data_col": 1,
       "data_row_start": 10,
       "data_row_end": 10
+    }
+  ],
+  "Source8": [
+    {
+      "combination": 1,
+      "title_row": 0,
+      "title_col": 0,
+      "is_date": true,
+      "is_time": false,
+      "data_col": 0,
+      "data_row_start": 1,
+      "data_row_end": 1
+    },
+    {
+      "combination": 2,
+      "title_row": 0,
+      "title_col": 1,
+      "is_date": false,
+      "is_time": false,
+      "data_col": 1,
+      "data_row_start": 1,
+      "data_row_end": 1
+    },
+    {
+      "combination": 3,
+      "title_row": 0,
+      "title_col": 2,
+      "is_date": false,
+      "is_time": false,
+      "data_col": 2,
+      "data_row_start": 1,
+      "data_row_end": 1
+    },
+    {
+      "combination": 4,
+      "title_row": 0,
+      "title_col": 3,
+      "is_date": false,
+      "is_time": false,
+      "data_col": 3,
+      "data_row_start": 1,
+      "data_row_end": 1
+    },
+    {
+      "combination": 5,
+      "title_row": 0,
+      "title_col": 4,
+      "is_date": false,
+      "is_time": false,
+      "data_col": 4,
+      "data_row_start": 1,
+      "data_row_end": 1
+    },
+    {
+      "combination": 6,
+      "title_row": 0,
+      "title_col": 5,
+      "is_date": false,
+      "is_time": false,
+      "data_col": 5,
+      "data_row_start": 1,
+      "data_row_end": 1
+    },
+    {
+      "combination": 7,
+      "title_row": 0,
+      "title_col": 6,
+      "is_date": false,
+      "is_time": false,
+      "data_col": 6,
+      "data_row_start": 1,
+      "data_row_end": 1
+    },
+    {
+      "combination": 8,
+      "title_row": 0,
+      "title_col": 7,
+      "is_date": false,
+      "is_time": false,
+      "data_col": 7,
+      "data_row_start": 1,
+      "data_row_end": 1
+    },
+    {
+      "combination": 9,
+      "title_row": 0,
+      "title_col": 8,
+      "is_date": false,
+      "is_time": false,
+      "data_col": 8,
+      "data_row_start": 1,
+      "data_row_end": 1
+    },
+    {
+      "combination": 10,
+      "title_row": 0,
+      "title_col": 9,
+      "is_date": false,
+      "is_time": false,
+      "data_col": 9,
+      "data_row_start": 1,
+      "data_row_end": 1
     }
   ]
 }

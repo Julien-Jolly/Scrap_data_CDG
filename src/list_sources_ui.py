@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 # Chemin du fichier JSON pour les sélections
 SELECTIONS_JSON_PATH = os.path.join(os.path.dirname(__file__), "..", "selections.json")
+# Chemin pour sauvegarder la requête CREATE TABLE
+CREATE_TABLE_SQL_PATH = os.path.join(os.path.dirname(__file__), "..", "create_table.sql")
 
 
 def load_selections():
@@ -45,8 +47,50 @@ def clean_column_name(name, idx):
     return name
 
 
+def generate_create_table_query(columns):
+    """Génère une requête CREATE TABLE pour SQL Server basée sur les colonnes du DataFrame."""
+    # Colonnes fixes avec leurs types
+    fixed_columns = [
+        ("id", "INT IDENTITY(1,1) PRIMARY KEY"),
+        ("extraction_datetime", "DATETIME"),
+        ("source_name", "NVARCHAR(255)"),
+        ("date", "NVARCHAR(50)"),
+        ("time", "NVARCHAR(50)"),
+        ("datetime", "NVARCHAR(50)")
+    ]
+
+    # Colonnes dynamiques (toutes typées NVARCHAR(255) par défaut)
+    dynamic_columns = [(col, "NVARCHAR(255)") for col in columns
+                       if col not in [fc[0] for fc in fixed_columns]]
+
+    # Combiner toutes les colonnes
+    all_columns = fixed_columns + dynamic_columns
+
+    # Générer la requête
+    column_definitions = [f"[{col_name}] {col_type}" for col_name, col_type in all_columns]
+    query = f"""
+    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'extractions')
+    BEGIN
+        CREATE TABLE extractions (
+            {', '.join(column_definitions)}
+        )
+    END
+    """
+    return query
+
+
+def save_create_table_query(query):
+    """Sauvegarde la requête CREATE TABLE dans un fichier."""
+    try:
+        with open(CREATE_TABLE_SQL_PATH, "w", encoding="utf-8") as f:
+            f.write(query)
+        logger.debug(f"Requête CREATE TABLE sauvegardée dans {CREATE_TABLE_SQL_PATH}")
+    except Exception as e:
+        logger.error(f"Erreur lors de la sauvegarde de la requête CREATE TABLE: {e}")
+
+
 def create_extractions_table():
-    """Crée la table 'extractions' avec les colonnes fixes."""
+    """Crée la table 'extractions' dans SQLite (maintien de la compatibilité)."""
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
 
@@ -66,7 +110,7 @@ def create_extractions_table():
 
 
 def add_dynamic_column(column_name):
-    """Ajoute une colonne dynamique à la table 'extractions' si elle n'existe pas."""
+    """Ajoute une colonne dynamique à la table 'extractions' dans SQLite si elle n'existe pas."""
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
     existing_columns = [row[1] for row in cursor.execute("PRAGMA table_info(extractions)").fetchall()]
@@ -140,11 +184,14 @@ def list_sources_section():
         st.warning("Aucune source paramétrée trouvée dans selections.json.")
         return
 
-    # Créer la table extractions
+    # Créer la table extractions dans SQLite
     create_extractions_table()
 
     # Sélectionner une date
     default_date = datetime.now().strftime("%m-%d")
+    # Créer le dossier du jour actuel
+    current_download_dir = get_download_dir(default_date)
+    logger.debug(f"Dossier du jour actuel créé : {current_download_dir}")
     available_dates = [d for d in os.listdir(os.path.join(os.path.dirname(__file__), "..", "Downloads"))
                        if os.path.isdir(os.path.join(os.path.dirname(__file__), "..", "Downloads", d))]
     selected_date = st.selectbox(
@@ -157,6 +204,7 @@ def list_sources_section():
 
     # Charger les fichiers téléchargés
     download_dir = get_download_dir(selected_date)
+    logger.debug(f"Dossier de téléchargement sélectionné : {download_dir}")
     downloaded_files = get_downloaded_files(download_dir)
     if not downloaded_files:
         st.warning("Aucun fichier téléchargé trouvé pour la date sélectionnée.")
@@ -332,6 +380,11 @@ def list_sources_section():
                     df_current = pd.DataFrame(df_data)
                     logger.debug(f"Source {source_name}: DataFrame créé avec colonnes {df_current.columns.tolist()}")
 
+                    # Générer et sauvegarder la requête CREATE TABLE
+                    create_table_query = generate_create_table_query(df_current.columns.tolist())
+                    save_create_table_query(create_table_query)
+                    st.info(f"Requête CREATE TABLE générée et sauvegardée dans {CREATE_TABLE_SQL_PATH}")
+
                     # Afficher le DataFrame
                     dataframes[source_name] = df_current
                     st.write(f"**DataFrame pour {source_name}**")
@@ -345,7 +398,7 @@ def list_sources_section():
                     for anomaly in cell_anomalies:
                         anomalies_data.append({"Source": source_name, "Anomalie": anomaly})
 
-                    # Insérer dans la base
+                    # Insérer dans la base SQLite
                     try:
                         insert_dataframe_to_sql(df_current, "extractions", "database.db")
                         logger.debug(f"Source {source_name}: Insertion réussie")
@@ -477,6 +530,10 @@ def list_sources_section():
                 df_data[column] = values
 
             df = pd.DataFrame(df_data)
+            # Générer et sauvegarder la requête CREATE TABLE pour cette source
+            create_table_query = generate_create_table_query(df.columns.tolist())
+            save_create_table_query(create_table_query)
+            st.info(f"Requête CREATE TABLE générée et sauvegardée dans {CREATE_TABLE_SQL_PATH}")
             st.dataframe(df, use_container_width=True)
         except Exception as e:
             st.error(f"Erreur lors de l'extraction pour {source_name} : {str(e)}")

@@ -10,19 +10,23 @@ import sqlite3
 
 logger = logging.getLogger(__name__)
 
-
-
 def load_excel_data():
     """Charge les données depuis le fichier Excel."""
     df = pd.read_excel(SOURCE_FILE, sheet_name="Source sans doub", dtype=str)
+    # Log des colonnes pour débogage
+    logger.debug(f"Colonnes lues depuis l'Excel : {df.columns.tolist()}")
+    # Trouver la colonne URL (supposition : troisième colonne, index 2)
+    url_column = df.columns[2] if len(df.columns) > 2 else None
+    if url_column:
+        logger.debug(f"URLs lues depuis la colonne '{url_column}' : {df[url_column].tolist()}")
+    else:
+        logger.warning("Aucune colonne URL trouvée dans l'Excel")
     return df
-
 
 def save_to_excel(df):
     """Sauvegarde le DataFrame dans le fichier Excel."""
     with pd.ExcelWriter(SOURCE_FILE, mode='a', if_sheet_exists='replace') as writer:
         df.to_excel(writer, sheet_name="Source sans doub", index=False)
-
 
 def make_unique_titles(titles):
     """Ajoute un suffixe '_x' aux titres dupliqués pour les rendre uniques."""
@@ -38,7 +42,6 @@ def make_unique_titles(titles):
             unique_titles.append(clean_title)
     return unique_titles
 
-
 def clean_column_name(name, idx):
     """Nettoie un nom de colonne pour qu'il soit valide en SQL."""
     name = str(name).lower()
@@ -50,7 +53,6 @@ def clean_column_name(name, idx):
     if not name:
         name = f"unnamed_{idx}"
     return name
-
 
 def delete_existing_data_for_date(engine, table_name, extraction_date):
     """Supprime les données existantes pour une date donnée dans une table."""
@@ -65,7 +67,6 @@ def delete_existing_data_for_date(engine, table_name, extraction_date):
                 pass
             else:
                 raise
-
 
 def adjust_dataframe_to_table(df, table_name, db_path):
     """Ajuste le DataFrame pour correspondre à la structure de la table SQL."""
@@ -93,7 +94,6 @@ def adjust_dataframe_to_table(df, table_name, db_path):
     conn.close()
     logger.debug(f"Colonnes ajustées pour {table_name}: {adjusted_df.columns.tolist()}")
     return adjusted_df
-
 
 def insert_dataframe_to_sql(df, table_name, db_path):
     """Insère un DataFrame dans une table SQL en mode append, après suppression des données du même jour pour la même source."""
@@ -141,7 +141,6 @@ def insert_dataframe_to_sql(df, table_name, db_path):
         conn.close()
         raise
 
-
 def load_previous_data(source, db_path, date_str):
     """Charge les données de la veille pour une source depuis la base SQLite."""
     table_name = source.replace(" ", "_").replace("-", "_").lower()
@@ -156,7 +155,6 @@ def load_previous_data(source, db_path, date_str):
         return df_previous
     except:
         return pd.DataFrame()  # Retourner un DataFrame vide si aucune donnée ou erreur
-
 
 def check_cell_changes(df_current, df_previous, source):
     """
@@ -173,7 +171,7 @@ def check_cell_changes(df_current, df_previous, source):
 
     current_titles = df_current.columns.tolist()
     previous_titles = df_previous.columns.tolist()
-    common_cols = [col for col in current_titles if col in previous_titles and col != 'extraction_datetime']
+    common_cols = [col for col in current_titles if col in previous_titles and col != 'gitlab_id']
 
     for col in common_cols:
         for idx in range(min(len(df_current), len(df_previous))):

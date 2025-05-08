@@ -10,27 +10,67 @@ import logging
 from bs4 import BeautifulSoup
 
 from src.config import SETTINGS_FILE, get_download_dir
+from src.utils import load_excel_data
 
 # Configurer le logging pour s'assurer que les messages DEBUG sont visibles
 logging.basicConfig(level=logging.DEBUG, format='%(levelname)s:%(name)s:%(message)s')
 logger = logging.getLogger(__name__)
 
+
 def get_downloaded_files(download_dir=None):
-    """Retourne une liste des fichiers téléchargés avec leur source."""
+    """Retourne un dictionnaire des fichiers téléchargés par source, basé sur l'index du fichier Excel."""
     if download_dir is None:
         download_dir = get_download_dir()
+    logger.debug(f"Vérification du répertoire : {download_dir}")
     files = {}
+
+    # Charger les sources depuis le fichier Excel
+    df = load_excel_data()
+    columns = df.columns.tolist()
+    sources = df[columns[0]].unique().tolist()
+    # Trier les sources par longueur décroissante pour éviter les correspondances partielles
+    sources.sort(key=len, reverse=True)
+    logger.debug(f"Sources chargées depuis Excel (triées par longueur) : {sources}")
+
     if not os.path.exists(download_dir):
+        logger.warning(f"Le répertoire {download_dir} n'existe pas.")
         return files
+
+    # Parcourir les fichiers dans download_dir
     for file_name in os.listdir(download_dir):
-        if os.path.isfile(os.path.join(download_dir, file_name)):
-            source = file_name.split(" - ")[0]
-            if source not in files:
-                files[source] = []
-            files[source].append(os.path.join(download_dir, file_name))
+        file_path = os.path.join(download_dir, file_name)
+        if os.path.isfile(file_path):
+            file_name_lower = file_name.lower()
+            matched_source = None
+            for source in sources:
+                # Normaliser source pour gérer espaces et casse
+                source_prefix = source.strip().replace(" ", "_").lower()
+                # Vérifier une correspondance exacte du préfixe avec séparateur
+                if (file_name_lower.startswith(source_prefix + " - ") or
+                        file_name_lower.startswith(source_prefix + "_") or
+                        file_name_lower.startswith(source_prefix + ".")):
+                    if matched_source:
+                        logger.warning(
+                            f"Ambiguité détectée : fichier '{file_name}' correspond à '{matched_source}' et '{source}'")
+                    matched_source = source
+                    if source not in files:
+                        files[source] = []
+                    files[source].append(file_path)
+                    if file_name_lower.endswith(".html"):
+                        logger.debug(f"Fichier HTML trouvé pour source '{source}' : {file_name} (tableau potentiel)")
+                    else:
+                        logger.debug(f"Fichier trouvé pour source '{source}' : {file_name}")
+                    break
+            if not matched_source:
+                logger.warning(f"Fichier non associé à une source : {file_name}")
+
+    # Trier les fichiers pour chaque source
     for source in files:
         files[source].sort()
+        logger.debug(f"Fichiers pour {source} ({len(files[source])} fichiers) : {files[source]}")
+
     return files
+
 
 def parse_html_table(file_path, selected_columns=None):
     """Parse un fichier HTML contenant un tableau avec BeautifulSoup."""
@@ -126,6 +166,7 @@ def parse_html_table(file_path, selected_columns=None):
         logger.error(f"Erreur lors du parsing HTML : {e}")
         return []
 
+
 def parse_file(file_path, separator=None, page=0, selected_columns=None):
     """Parse le fichier selon son extension."""
     ext = os.path.splitext(file_path)[1].lower()
@@ -158,7 +199,8 @@ def parse_file(file_path, separator=None, page=0, selected_columns=None):
     elif ext == ".pdf":
         try:
             # Essayer tabula avec stream=True pour les tableaux sans bordures verticales
-            tables = tabula.read_pdf(file_path, pages=str(page + 1), stream=True, multiple_tables=True, guess=True, columns=None, area=[50, 0, 1000, 1000])
+            tables = tabula.read_pdf(file_path, pages=str(page + 1), stream=True, multiple_tables=True, guess=True,
+                                     columns=None, area=[50, 0, 1000, 1000])
             if tables and not tables[0].empty:
                 df = tables[0].astype(str)
                 result = [[x for x in row if x != 'nan'] for row in df.values]
@@ -194,11 +236,13 @@ def parse_file(file_path, separator=None, page=0, selected_columns=None):
                 # Fallback : extraction texte avec détection manuelle des colonnes
                 text = pdf_page.extract_text() or ""
                 logger.debug(f"Texte extrait avec pdfplumber: {text}")
+
                 def parse_text_to_table(text):
                     lines = text.splitlines()
                     rows = []
                     # Filtrer les lignes pertinentes (exclure les titres comme "OBJET DE L'AVIS")
-                    table_lines = [line for line in lines if line.strip() and not line.startswith(('-OBJET', '-CARACTÉRISTIQUES'))]
+                    table_lines = [line for line in lines if
+                                   line.strip() and not line.startswith(('-OBJET', '-CARACTÉRISTIQUES'))]
                     # Détecter les colonnes manuellement en utilisant un seuil d'espacement
                     for line in table_lines:
                         # Remplacer plusieurs espaces par un séparateur unique
@@ -208,6 +252,7 @@ def parse_file(file_path, separator=None, page=0, selected_columns=None):
                         if len(parts) == 2:
                             rows.append([parts[0].strip(), parts[1].strip()])
                     return rows
+
                 parsed_data = parse_text_to_table(text)
                 logger.debug(f"Données extraites avec détection manuelle: {parsed_data}")
                 return parsed_data if parsed_data else []
@@ -221,6 +266,7 @@ def parse_file(file_path, separator=None, page=0, selected_columns=None):
         return parse_html_table(file_path, selected_columns)
 
     return []
+
 
 def extract_data(raw_data, title_range=None, data_range=None, ignore_titles=False):
     """Extrait les titres et données selon les plages définies."""
@@ -258,10 +304,12 @@ def extract_data(raw_data, title_range=None, data_range=None, ignore_titles=Fals
     data_start = data_range[0] if data_range else 1
     data_end = data_range[1] + 1 if data_range else len(adjusted_raw_data)
     data = [row[title_range[2]:title_range[3] + 1] for row in
-            adjusted_raw_data[data_start:data_end]] if title_range and data_range else adjusted_raw_data[data_start:] if adjusted_raw_data else []
+            adjusted_raw_data[data_start:data_end]] if title_range and data_range else adjusted_raw_data[
+                                                                                       data_start:] if adjusted_raw_data else []
     logger.debug(f"Données extraites: {data}")
 
     return titles, data
+
 
 def load_settings():
     """Charge les paramètres sauvegardés."""
@@ -270,10 +318,12 @@ def load_settings():
             return json.load(f)
     return {}
 
+
 def save_settings(settings):
     """Sauvegarde les paramètres."""
     with open(SETTINGS_FILE, "w") as f:
         json.dump(settings, f, indent=4)
+
 
 def get_source_settings(source):
     """Retourne les paramètres d’une source spécifique."""
@@ -286,6 +336,7 @@ def get_source_settings(source):
         "selected_table": None,
         "ignore_titles": False
     })
+
 
 def update_source_settings(source, separator, page, title_range, data_range, selected_table=None, ignore_titles=False):
     """Met à jour les paramètres d’une source."""
