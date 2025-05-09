@@ -3,12 +3,10 @@ import streamlit as st
 import pandas as pd
 import os
 import json
-import sqlite3
 import re
 from datetime import datetime
 from src.parser import get_downloaded_files, parse_file
-from src.utils import load_excel_data, insert_dataframe_to_sql, load_previous_data, check_cell_changes, \
-    clean_column_name
+from src.utils import load_excel_data
 from src.config import get_download_dir
 import logging
 
@@ -16,21 +14,27 @@ import logging
 logging.basicConfig(level=logging.DEBUG, format='%(levelname)s:%(name)s:%(message)s')
 logger = logging.getLogger(__name__)
 
-# Chemin du fichier JSON pour les sélections
-SELECTIONS_JSON_PATH = os.path.join(os.path.dirname(__file__), "..", "selections.json")
-# Chemin pour sauvegarder la requête CREATE TABLE
-CREATE_TABLE_SQL_PATH = os.path.join(os.path.dirname(__file__), "..", "create_table.sql")
+# Chemins pour les exports
+EXPORTS_DIR = os.path.join(os.path.dirname(__file__), "..", "exports")
+SQL_SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "sql_scripts")
 
 
-def load_selections():
-    """Charge les sélections depuis le fichier JSON. Retourne un dictionnaire vide si le fichier n'existe pas."""
+def ensure_directories():
+    """Crée les dossiers exports et sql_scripts s'ils n'existent pas."""
+    os.makedirs(EXPORTS_DIR, exist_ok=True)
+    os.makedirs(SQL_SCRIPTS_DIR, exist_ok=True)
+
+
+def load_settings():
+    """Charge les paramètres depuis source_settings.json."""
+    settings_path = os.path.join(os.path.dirname(__file__), "..", "source_settings.json")
     try:
-        if os.path.exists(SELECTIONS_JSON_PATH):
-            with open(SELECTIONS_JSON_PATH, "r", encoding="utf-8") as f:
+        if os.path.exists(settings_path):
+            with open(settings_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         return {}
     except Exception as e:
-        logger.error(f"Erreur lors du chargement de {SELECTIONS_JSON_PATH}: {e}")
+        logger.error(f"Erreur lors du chargement de {settings_path}: {e}")
         return {}
 
 
@@ -47,31 +51,36 @@ def clean_column_name(name, idx):
     return name
 
 
-def generate_create_table_query(columns):
-    """Génère une requête CREATE TABLE pour SQL Server basée sur les colonnes du DataFrame."""
-    # Colonnes fixes avec leurs types
+def infer_sql_type(value):
+    """Infère le type SQL basé sur la valeur."""
+    if pd.isna(value) or value in [None, '', '-', 'NaN']:
+        return "NVARCHAR(255)"
+
+    try:
+        float(str(value).replace(",", "."))
+        return "FLOAT"
+    except (ValueError, TypeError):
+        return "NVARCHAR(255)"
+
+
+def generate_create_table_query(unique_titles):
+    """Génère une requête CREATE TABLE pour SQL Server avec tous les titres uniques."""
     fixed_columns = [
         ("id", "INT IDENTITY(1,1) PRIMARY KEY"),
-        ("extraction_datetime", "DATETIME"),
-        ("source_name", "NVARCHAR(255)"),
-        ("date", "NVARCHAR(50)"),
-        ("time", "NVARCHAR(50)"),
-        ("datetime", "NVARCHAR(50)")
+        ("source", "NVARCHAR(255)"),
+        ("datetime_extraction", "DATETIME")
     ]
 
-    # Colonnes dynamiques (toutes typées NVARCHAR(255) par défaut)
-    dynamic_columns = [(col, "NVARCHAR(255)") for col in columns
-                       if col not in [fc[0] for fc in fixed_columns]]
+    # Colonnes dynamiques basées sur les titres uniques
+    dynamic_columns = [(clean_column_name(title, idx), "NVARCHAR(255)") for idx, title in enumerate(unique_titles)]
 
-    # Combiner toutes les colonnes
     all_columns = fixed_columns + dynamic_columns
-
-    # Générer la requête
     column_definitions = [f"[{col_name}] {col_type}" for col_name, col_type in all_columns]
+
     query = f"""
-    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'extractions')
+    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Extractions')
     BEGIN
-        CREATE TABLE extractions (
+        CREATE TABLE Extractions (
             {', '.join(column_definitions)}
         )
     END
@@ -81,119 +90,75 @@ def generate_create_table_query(columns):
 
 def save_create_table_query(query):
     """Sauvegarde la requête CREATE TABLE dans un fichier."""
+    ensure_directories()
+    sql_file = os.path.join(SQL_SCRIPTS_DIR, "create_table_extractions.sql")
     try:
-        with open(CREATE_TABLE_SQL_PATH, "w", encoding="utf-8") as f:
+        with open(sql_file, "w", encoding="utf-8") as f:
             f.write(query)
-        logger.debug(f"Requête CREATE TABLE sauvegardée dans {CREATE_TABLE_SQL_PATH}")
+        logger.debug(f"Requête CREATE TABLE sauvegardée dans {sql_file}")
+        return sql_file
     except Exception as e:
         logger.error(f"Erreur lors de la sauvegarde de la requête CREATE TABLE: {e}")
+        raise
 
 
-def create_extractions_table():
-    """Crée la table 'extractions' dans SQLite (maintien de la compatibilité)."""
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS extractions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            extraction_datetime DATETIME NOT NULL,
-            source_name TEXT NOT NULL,
-            date TEXT,
-            time TEXT,
-            datetime TEXT
-        )
-    """)
-
-    conn.commit()
-    conn.close()
+def save_csv(df, selected_date):
+    """Sauvegarde le DataFrame dans un fichier CSV."""
+    ensure_directories()
+    csv_file = os.path.join(EXPORTS_DIR, f"extractions_{selected_date}.csv")
+    try:
+        df.to_csv(csv_file, index=False, sep=";", encoding="utf-8-sig")
+        logger.debug(f"CSV sauvegardé dans {csv_file}")
+        return csv_file
+    except Exception as e:
+        logger.error(f"Erreur lors de la sauvegarde du CSV: {e}")
+        raise
 
 
-def add_dynamic_column(column_name):
-    """Ajoute une colonne dynamique à la table 'extractions' dans SQLite si elle n'existe pas."""
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-    existing_columns = [row[1] for row in cursor.execute("PRAGMA table_info(extractions)").fetchall()]
-    if column_name not in existing_columns:
-        try:
-            cursor.execute(f"ALTER TABLE extractions ADD COLUMN {column_name} TEXT")
-            logger.debug(f"Colonne {column_name} ajoutée à la table extractions")
-            conn.commit()
-        except Exception as e:
-            logger.error(f"Erreur lors de l'ajout de la colonne {column_name}: {str(e)}")
-            raise
-    else:
-        logger.debug(f"Colonne {column_name} déjà existante dans la table extractions")
-    conn.close()
-
-
-def validate_and_format_value(value, is_date, is_time):
-    """Valide et formate une valeur en fonction des tags is_date et is_time."""
+def validate_and_format_value(value):
+    """Valide et formate une valeur comme texte ou nombre."""
     if pd.isna(value) or value in [None, '', '-', 'NaN']:
         return None
 
-    try:
-        if is_date and is_time:
-            parsed = pd.to_datetime(value, errors='coerce')
-            if pd.isna(parsed):
-                raise ValueError(f"Format datetime invalide : {value}")
-            return parsed.strftime("%Y-%m-%d %H:%M:%S")
-        elif is_date:
-            parsed = pd.to_datetime(value, errors='coerce')
-            if pd.isna(parsed):
-                raise ValueError(f"Format date invalide : {value}")
-            return parsed.strftime("%Y-%m-%d")
-        elif is_time:
-            parsed = pd.to_datetime(value, format="%H:%M:%S", errors='coerce')
-            if pd.isna(parsed):
-                raise ValueError(f"Format time invalide : {value}")
-            return parsed.strftime("%H:%M:%S")
-        else:
-            if isinstance(value, str):
-                clean_value = value.replace(" ", "").replace(",", ".")
-                try:
-                    return float(clean_value)
-                except ValueError:
-                    return value
+    if isinstance(value, str):
+        clean_value = value.replace(" ", "").replace(",", ".")
+        try:
+            return float(clean_value)
+        except ValueError:
             return value
-    except Exception as e:
-        logger.error(f"Erreur de validation/formatage : {e}")
-        return None
+    return value
 
 
 def list_sources_section():
-    """Affiche la section 'Traitement et Insertion dans la Base de Données' avec suivi des insertions et contrôles."""
+    """Affiche la section 'Traitement et Insertion dans la Base de Données'."""
     st.header("Traitement et Insertion dans la Base de Données", anchor=False)
     st.write(
-        "Lancez l'insertion des données dans la base de données, suivez les succès et échecs, et consultez les anomalies de types ou de nature des valeurs.")
+        "Préparez les données pour l'importation dans SQL Server Management Studio (SSMS) en générant un fichier CSV et un script SQL de création de table."
+    )
 
     # Charger les données Excel
     df_excel = load_excel_data()
     columns = df_excel.columns.tolist()
 
-    # Charger les sélections
-    selections_data = load_selections()
-    if not selections_data:
-        st.warning(
-            "Aucune sélection trouvée dans selections.json. Configurez les paramètres dans 'Analyse et Extraction'.")
+    # Charger les paramètres
+    settings_data = load_settings()
+    if not settings_data:
+        st.warning("Aucun paramètre trouvé dans source_settings.json. Configurez les paramètres dans 'Analyse et Extraction'.")
         return
 
     # Récupérer les sources paramétrées
-    sources = list(selections_data.keys())
+    sources = list(settings_data.keys())
     if not sources:
-        st.warning("Aucune source paramétrée trouvée dans selections.json.")
+        st.warning("Aucune source paramétrée trouvée dans source_settings.json.")
         return
-
-    # Créer la table extractions dans SQLite
-    create_extractions_table()
 
     # Sélectionner une date
     default_date = datetime.now().strftime("%m-%d")
-    # Créer le dossier du jour actuel
-    current_download_dir = get_download_dir(default_date)
-    logger.debug(f"Dossier du jour actuel créé : {current_download_dir}")
-    available_dates = [d for d in os.listdir(os.path.join(os.path.dirname(__file__), "..", "Downloads"))
-                       if os.path.isdir(os.path.join(os.path.dirname(__file__), "..", "Downloads", d))]
+    downloads_base = os.path.join(os.path.dirname(__file__), "..", "Downloads")
+    available_dates = sorted([
+        d for d in os.listdir(downloads_base)
+        if os.path.isdir(os.path.join(downloads_base, d)) and re.match(r"\d{2}-\d{2}", d)
+    ])
     selected_date = st.selectbox(
         "Date de l'extraction",
         available_dates,
@@ -213,9 +178,7 @@ def list_sources_section():
     # Vérifier les fichiers manquants pour les sources paramétrées
     missing_files = []
     for source in sources:
-        if source not in downloaded_files:
-            missing_files.append(source)
-        elif not downloaded_files[source]:
+        if source not in downloaded_files or not downloaded_files[source]:
             missing_files.append(source)
 
     if missing_files:
@@ -226,32 +189,45 @@ def list_sources_section():
     # Sélectionner une source
     selected_source = st.selectbox("Sélectionner une source", ["Toutes les sources"] + sources, key="source_select")
 
-    # Bouton pour lancer l'insertion
-    if st.button("Lancer l'insertion dans la base de données", key="insert_button"):
+    # Bouton pour générer les fichiers
+    if st.button("Générer CSV et script SQL", key="generate_button"):
         # Créer deux colonnes pour les tableaux
         col1, col2 = st.columns(2)
 
         # Tableau de suivi (gauche)
         with col1:
-            st.subheader("Suivi des insertions")
+            st.subheader("Suivi de la génération")
             status_placeholder = st.empty()
             status_data = []
 
         # Tableau des erreurs (droite)
         with col2:
-            st.subheader("Erreurs d'insertion")
+            st.subheader("Erreurs de génération")
             errors_placeholder = st.empty()
             errors_data = []
 
         # Tableau des anomalies
         anomalies_data = []
 
-        # Afficher les DataFrames pour toutes les sources
-        st.write("### DataFrames avant insertion")
-        dataframes = {}
+        # Collecter tous les titres uniques
+        unique_titles = set()
+        for source in sources:
+            source_settings = settings_data.get(source, {}).get("tables", {})
+            for table_name, table_settings in source_settings.items():
+                for idx, comb in enumerate(table_settings.get("combinations", [])):
+                    if not comb.get("ignore_titles", False):
+                        # Les titres seront extraits des fichiers plus tard
+                        pass
+                    else:
+                        title = f"Titre_{comb['data_col'] + 1}"
+                        unique_titles.add(title)
 
-        # Lancer l'insertion
-        with st.spinner("Insertion en cours..."):
+        # Afficher le DataFrame global
+        st.write("### DataFrame global")
+        global_data = []
+
+        # Lancer la génération
+        with st.spinner("Génération en cours..."):
             if selected_source == "Toutes les sources":
                 sources_to_process = sources
             else:
@@ -263,149 +239,95 @@ def list_sources_section():
                     status_data.append({"Source": source_name, "Statut": "En cours"})
                     status_placeholder.dataframe(pd.DataFrame(status_data), use_container_width=True)
 
-                    # Vérifier les sélections
-                    selections = selections_data.get(source, [])
-                    if not selections:
-                        raise Exception("Aucune sélection configurée pour cette source.")
+                    # Vérifier les paramètres
+                    source_settings = settings_data.get(source, {}).get("tables", {})
+                    if not source_settings:
+                        raise Exception("Aucun paramètre configuré pour cette source.")
 
                     # Charger les fichiers
                     file_paths = downloaded_files.get(source, [])
                     if not file_paths:
                         raise Exception("Aucun fichier trouvé pour cette source.")
 
-                    # Utiliser le fichier le plus récent
-                    file_path = max(file_paths, key=os.path.getmtime)
-                    logger.debug(f"Source {source_name}: Fichier sélectionné : {file_path}")
+                    # Traiter chaque tableau
+                    for table_name, table_settings in source_settings.items():
+                        # Trouver le fichier correspondant
+                        file_path = next((fp for fp in file_paths if os.path.basename(fp) == table_name), None)
+                        if not file_path:
+                            anomalies_data.append({
+                                "Source": source_name,
+                                "Anomalie": f"Fichier pour le tableau {table_name} non trouvé."
+                            })
+                            continue
 
-                    # Récupérer la date de modification
-                    extraction_datetime = datetime.fromtimestamp(os.path.getmtime(file_path))
+                        # Récupérer la date de modification
+                        extraction_datetime = datetime.fromtimestamp(os.path.getmtime(file_path)).strftime(
+                            "%Y-%m-%d %H:%M:%S")
 
-                    # Parser le fichier
-                    raw_data = parse_file(file_path, separator=";", page=0, selected_columns=None)
-                    if not raw_data:
-                        raise Exception("Aucune donnée extraite.")
+                        # Parser le fichier
+                        raw_data = parse_file(file_path, separator=";", page=0, selected_columns=None)
+                        if not raw_data:
+                            raise Exception(f"Aucune donnée extraite pour {table_name}.")
 
-                    # Valider les sélections
-                    max_rows = len(raw_data)
-                    max_cols = max(len(row) for row in raw_data) if raw_data else 0
-                    valid_selections = []
-                    for sel in selections:
-                        try:
-                            if (sel["title_row"] >= max_rows or sel["title_col"] >= max_cols or
-                                    sel["data_col"] >= max_cols or sel["data_row_start"] >= max_rows or
-                                    sel["data_row_end"] >= max_rows or sel["data_row_start"] > sel["data_row_end"]):
+                        # Valider les combinaisons
+                        max_rows = len(raw_data)
+                        max_cols = max(len(row) for row in raw_data) if raw_data else 0
+                        table_data = {"source": f"{source_name}-{table_name.replace('.html', '')}",
+                                      "datetime_extraction": extraction_datetime}
+
+                        for idx, comb in enumerate(table_settings.get("combinations", [])):
+                            try:
+                                if (comb["title_row"] >= max_rows or comb["title_col"] >= max_cols or
+                                        comb["data_col"] >= max_cols or comb["data_row_start"] >= max_rows or
+                                        comb["data_row_end"] >= max_rows or
+                                        comb["data_row_start"] > comb["data_row_end"]):
+                                    anomalies_data.append({
+                                        "Source": source_name,
+                                        "Anomalie": f"Combinaison {idx + 1} de {table_name} invalide : indices hors limites (lignes max: {max_rows}, colonnes max: {max_cols})"
+                                    })
+                                    continue
+
+                                title_row = comb["title_row"]
+                                title_col = comb["title_col"]
+                                data_col = comb["data_col"]
+                                data_row_start = comb["data_row_start"]
+                                data_row_end = comb["data_row_end"]
+                                ignore_titles = comb["ignore_titles"]
+
+                                # Récupérer le titre
+                                if not ignore_titles:
+                                    title_value = raw_data[title_row][title_col] if raw_data else f"Col_{idx + 1}"
+                                else:
+                                    title_value = f"Titre_{data_col + 1}"
+
+                                column_name = clean_column_name(title_value, idx)
+                                unique_titles.add(column_name)
+
+                                # Extraire les données
+                                data_values = []
+                                for row_idx in range(data_row_start, data_row_end + 1):
+                                    try:
+                                        value = raw_data[row_idx][data_col] if row_idx < len(
+                                            raw_data) and data_col < len(raw_data[row_idx]) else None
+                                        formatted_value = validate_and_format_value(value)
+                                        data_values.append(formatted_value)
+                                    except IndexError:
+                                        data_values.append(None)
+
+                                # Ajouter la première valeur non nulle (simplification : une valeur par combinaison)
+                                for value in data_values:
+                                    if value is not None:
+                                        table_data[column_name] = value
+                                        break
+                            except Exception as e:
                                 anomalies_data.append({
                                     "Source": source_name,
-                                    "Anomalie": f"Combinaison {sel['combination']} invalide : indices hors limites (lignes max: {max_rows}, colonnes max: {max_cols})"
+                                    "Anomalie": f"Erreur lors de l'extraction pour la combinaison {idx + 1} de {table_name} : {str(e)}"
                                 })
-                                continue
-                            valid_selections.append(sel)
-                        except KeyError as e:
-                            anomalies_data.append({
-                                "Source": source_name,
-                                "Anomalie": f"Combinaison {sel['combination']} invalide : clé manquante {str(e)}"
-                            })
 
-                    if not valid_selections:
-                        raise Exception("Aucune sélection valide pour cette source.")
+                        global_data.append(table_data)
 
-                    # Extraire les données
-                    extracted_data = []
-                    column_mapping = {}
-                    for sel in valid_selections:
-                        try:
-                            title_row = sel["title_row"]
-                            title_col = sel["title_col"]
-                            is_date = sel["is_date"]
-                            is_time = sel["is_time"]
-                            data_col = sel["data_col"]
-                            data_row_start = sel["data_row_start"]
-                            data_row_end = sel["data_row_end"]
-
-                            # Récupérer le titre dynamiquement
-                            title_value = raw_data[title_row][title_col] if raw_data else "Non disponible"
-                            logger.debug(
-                                f"Source {source_name}, combinaison {sel['combination']}: Titre = {title_value}")
-
-                            # Nettoyer le titre pour la colonne
-                            if is_date and is_time:
-                                column_name = "datetime"
-                            elif is_date:
-                                column_name = "date"
-                            elif is_time:
-                                column_name = "time"
-                            else:
-                                column_name = clean_column_name(title_value, sel["combination"])
-                                add_dynamic_column(column_name)
-
-                            column_mapping[sel["combination"]] = column_name
-
-                            # Extraire les données
-                            data_values = []
-                            for row_idx in range(data_row_start, data_row_end + 1):
-                                try:
-                                    value = raw_data[row_idx][data_col] if row_idx < len(raw_data) and data_col < len(
-                                        raw_data[row_idx]) else None
-                                    formatted_value = validate_and_format_value(value, is_date, is_time)
-                                    data_values.append(formatted_value)
-                                except IndexError:
-                                    data_values.append(None)
-
-                            extracted_data.append({
-                                "column": column_name,
-                                "values": data_values
-                            })
-                        except Exception as e:
-                            anomalies_data.append({
-                                "Source": source_name,
-                                "Anomalie": f"Erreur lors de l'extraction pour la combinaison {sel['combination']} : {str(e)}"
-                            })
-
-                    # Créer le DataFrame
-                    max_rows = max(len(data["values"]) for data in extracted_data) if extracted_data else 0
-                    if max_rows == 0:
-                        raise Exception("Aucune donnée extraite pour cette source.")
-
-                    df_data = {
-                        "extraction_datetime": [extraction_datetime] * max_rows,
-                        "source_name": [source_name] * max_rows
-                    }
-                    for data in extracted_data:
-                        column = data["column"]
-                        values = data["values"]
-                        if len(values) < max_rows:
-                            values.extend([None] * (max_rows - len(values)))
-                        df_data[column] = values
-
-                    df_current = pd.DataFrame(df_data)
-                    logger.debug(f"Source {source_name}: DataFrame créé avec colonnes {df_current.columns.tolist()}")
-
-                    # Générer et sauvegarder la requête CREATE TABLE
-                    create_table_query = generate_create_table_query(df_current.columns.tolist())
-                    save_create_table_query(create_table_query)
-                    st.info(f"Requête CREATE TABLE générée et sauvegardée dans {CREATE_TABLE_SQL_PATH}")
-
-                    # Afficher le DataFrame
-                    dataframes[source_name] = df_current
-                    st.write(f"**DataFrame pour {source_name}**")
-                    st.dataframe(df_current, use_container_width=True)
-
-                    # Charger les données de la veille
-                    df_previous = load_previous_data("extractions", "database.db", selected_date)
-
-                    # Vérifier les anomalies
-                    cell_anomalies = check_cell_changes(df_current, df_previous, source_name)
-                    for anomaly in cell_anomalies:
-                        anomalies_data.append({"Source": source_name, "Anomalie": anomaly})
-
-                    # Insérer dans la base SQLite
-                    try:
-                        insert_dataframe_to_sql(df_current, "extractions", "database.db")
-                        logger.debug(f"Source {source_name}: Insertion réussie")
-                        status_data[-1]["Statut"] = "Succès"
-                    except Exception as e:
-                        raise Exception(f"Erreur lors de l'insertion : {str(e)}")
-
+                    status_data[-1]["Statut"] = "Succès"
                     status_placeholder.dataframe(pd.DataFrame(status_data), use_container_width=True)
 
                 except Exception as e:
@@ -416,6 +338,28 @@ def list_sources_section():
                     anomalies_data.append({"Source": source_name, "Anomalie": f"Erreur lors du traitement : {str(e)}"})
                     logger.error(f"Source {source_name}: Erreur : {str(e)}")
 
+            # Créer le DataFrame global
+            if global_data:
+                df_global = pd.DataFrame(global_data)
+                for title in unique_titles:
+                    if title not in df_global.columns:
+                        df_global[title] = None
+                df_global = df_global[["source", "datetime_extraction"] + sorted(unique_titles)]
+
+                # Générer et sauvegarder la requête CREATE TABLE
+                create_table_query = generate_create_table_query(unique_titles)
+                sql_file = save_create_table_query(create_table_query)
+
+                # Sauvegarder le CSV
+                csv_file = save_csv(df_global, selected_date)
+
+                # Afficher le DataFrame
+                st.dataframe(df_global, use_container_width=True)
+                st.info(f"CSV généré : {csv_file}")
+                st.info(f"Script SQL généré : {sql_file}")
+            else:
+                st.error("Aucune donnée extraite pour aucune source.")
+
         # Afficher le tableau des anomalies
         if anomalies_data:
             st.subheader("Tableau des anomalies détectées")
@@ -425,116 +369,98 @@ def list_sources_section():
             st.info("Aucune anomalie détectée.")
 
         if not errors_data:
-            st.success("Insertion terminée pour toutes les sources !")
+            st.success("Génération terminée pour toutes les sources !")
         else:
-            st.warning("Certaines insertions ont échoué. Consultez les détails à droite.")
+            st.warning("Certaines générations ont échoué. Consultez les détails à droite.")
 
     # Afficher le DataFrame pour la source sélectionnée
     if selected_source != "Toutes les sources":
         st.write(f"### DataFrame pour {selected_source}")
         source_name = selected_source
         try:
-            selections = selections_data.get(selected_source, [])
-            if not selections:
-                st.warning(f"Aucune sélection configurée pour {source_name}.")
+            source_settings = settings_data.get(source_name, {}).get("tables", {})
+            if not source_settings:
+                st.warning(f"Aucun paramètre configuré pour {source_name}.")
                 return
 
-            file_paths = downloaded_files.get(selected_source, [])
+            file_paths = downloaded_files.get(source_name, [])
             if not file_paths:
                 st.error(f"Aucun fichier trouvé pour {source_name}.")
                 return
 
-            file_path = max(file_paths, key=os.path.getmtime)
-            extraction_datetime = datetime.fromtimestamp(os.path.getmtime(file_path))
-            raw_data = parse_file(file_path, separator=";", page=0, selected_columns=None)
-            if not raw_data:
-                st.error(f"Aucune donnée extraite pour {source_name}.")
-                return
+            local_data = []
+            local_titles = set()
+            for table_name, table_settings in source_settings.items():
+                file_path = next((fp for fp in file_paths if os.path.basename(fp) == table_name), None)
+                if not file_path:
+                    st.warning(f"Fichier pour le tableau {table_name} non trouvé.")
+                    continue
 
-            # Valider les sélections
-            max_rows = len(raw_data)
-            max_cols = max(len(row) for row in raw_data) if raw_data else 0
-            valid_selections = []
-            for sel in selections:
-                try:
-                    if (sel["title_row"] >= max_rows or sel["title_col"] >= max_cols or
-                            sel["data_col"] >= max_cols or sel["data_row_start"] >= max_rows or
-                            sel["data_row_end"] >= max_rows or sel["data_row_start"] > sel["data_row_end"]):
+                extraction_datetime = datetime.fromtimestamp(os.path.getmtime(file_path)).strftime("%Y-%m-%d %H:%M:%S")
+                raw_data = parse_file(file_path, separator=";", page=0, selected_columns=None)
+                if not raw_data:
+                    st.error(f"Aucune donnée extraite pour {table_name}.")
+                    continue
+
+                max_rows = len(raw_data)
+                max_cols = max(len(row) for row in raw_data) if raw_data else 0
+                table_data = {"source": f"{source_name}-{table_name.replace('.html', '')}",
+                              "datetime_extraction": extraction_datetime}
+
+                for idx, comb in enumerate(table_settings.get("combinations", [])):
+                    try:
+                        if (comb["title_row"] >= max_rows or comb["title_col"] >= max_cols or
+                                comb["data_col"] >= max_cols or comb["data_row_start"] >= max_rows or
+                                comb["data_row_end"] >= max_rows or
+                                comb["data_row_start"] > comb["data_row_end"]):
+                            st.warning(
+                                f"Combinaison {idx + 1} de {table_name} invalide : indices hors limites (lignes max: {max_rows}, colonnes max: {max_cols})")
+                            continue
+
+                        title_row = comb["title_row"]
+                        title_col = comb["title_col"]
+                        data_col = comb["data_col"]
+                        data_row_start = comb["data_row_start"]
+                        data_row_end = comb["data_row_end"]
+                        ignore_titles = comb["ignore_titles"]
+
+                        if not ignore_titles:
+                            title_value = raw_data[title_row][title_col] if raw_data else f"Col_{idx + 1}"
+                        else:
+                            title_value = f"Titre_{data_col + 1}"
+
+                        column_name = clean_column_name(title_value, idx)
+                        local_titles.add(column_name)
+
+                        data_values = []
+                        for row_idx in range(data_row_start, data_row_end + 1):
+                            try:
+                                value = raw_data[row_idx][data_col] if row_idx < len(raw_data) and data_col < len(
+                                    raw_data[row_idx]) else None
+                                formatted_value = validate_and_format_value(value)
+                                data_values.append(formatted_value)
+                            except IndexError:
+                                data_values.append(None)
+
+                        for value in data_values:
+                            if value is not None:
+                                table_data[column_name] = value
+                                break
+                    except Exception as e:
                         st.warning(
-                            f"Combinaison {sel['combination']} invalide : indices hors limites (lignes max: {max_rows}, colonnes max: {max_cols})")
-                        continue
-                    valid_selections.append(sel)
-                except KeyError as e:
-                    st.warning(f"Combinaison {sel['combination']} invalide : clé manquante {str(e)}")
+                            f"Erreur lors de l'extraction pour la combinaison {idx + 1} de {table_name} : {str(e)}")
 
-            if not valid_selections:
-                st.error(f"Aucune sélection valide pour {source_name}.")
-                return
+                local_data.append(table_data)
 
-            extracted_data = []
-            column_mapping = {}
-            for sel in valid_selections:
-                try:
-                    title_row = sel["title_row"]
-                    title_col = sel["title_col"]
-                    is_date = sel["is_date"]
-                    is_time = sel["is_time"]
-                    data_col = sel["data_col"]
-                    data_row_start = sel["data_row_start"]
-                    data_row_end = sel["data_row_end"]
-
-                    title_value = raw_data[title_row][title_col] if raw_data else "Non disponible"
-                    if is_date and is_time:
-                        column_name = "datetime"
-                    elif is_date:
-                        column_name = "date"
-                    elif is_time:
-                        column_name = "time"
-                    else:
-                        column_name = clean_column_name(title_value, sel["combination"])
-                        add_dynamic_column(column_name)
-
-                    column_mapping[sel["combination"]] = column_name
-
-                    data_values = []
-                    for row_idx in range(data_row_start, data_row_end + 1):
-                        try:
-                            value = raw_data[row_idx][data_col] if row_idx < len(raw_data) and data_col < len(
-                                raw_data[row_idx]) else None
-                            formatted_value = validate_and_format_value(value, is_date, is_time)
-                            data_values.append(formatted_value)
-                        except IndexError:
-                            data_values.append(None)
-
-                    extracted_data.append({
-                        "column": column_name,
-                        "values": data_values
-                    })
-                except Exception as e:
-                    st.warning(f"Erreur lors de l'extraction pour la combinaison {sel['combination']} : {str(e)}")
-
-            max_rows = max(len(data["values"]) for data in extracted_data) if extracted_data else 0
-            if max_rows == 0:
+            if local_data:
+                df_local = pd.DataFrame(local_data)
+                for title in local_titles:
+                    if title not in df_local.columns:
+                        df_local[title] = None
+                df_local = df_local[["source", "datetime_extraction"] + sorted(local_titles)]
+                st.dataframe(df_local, use_container_width=True)
+            else:
                 st.error(f"Aucune donnée extraite pour {source_name}.")
-                return
-
-            df_data = {
-                "extraction_datetime": [extraction_datetime] * max_rows,
-                "source_name": [source_name] * max_rows
-            }
-            for data in extracted_data:
-                column = data["column"]
-                values = data["values"]
-                if len(values) < max_rows:
-                    values.extend([None] * (max_rows - len(values)))
-                df_data[column] = values
-
-            df = pd.DataFrame(df_data)
-            # Générer et sauvegarder la requête CREATE TABLE pour cette source
-            create_table_query = generate_create_table_query(df.columns.tolist())
-            save_create_table_query(create_table_query)
-            st.info(f"Requête CREATE TABLE générée et sauvegardée dans {CREATE_TABLE_SQL_PATH}")
-            st.dataframe(df, use_container_width=True)
         except Exception as e:
             st.error(f"Erreur lors de l'extraction pour {source_name} : {str(e)}")
 

@@ -13,3 +13,6 @@ logs/
 matrice_sources - Copie.xlsx
 .idea/workspace.xml
 .gitignore
+exports/
+sql_scripts/
+*.json

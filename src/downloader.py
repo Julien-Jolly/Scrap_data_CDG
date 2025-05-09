@@ -47,7 +47,7 @@ def simple_dl(row, columns, date_str=None):
 
     # Calculer la date de la veille
     current_date = datetime.now()
-    previous_date = current_date - timedelta(days=1)
+    previous_date = current_date - timedelta(days=2)
     year = previous_date.strftime("%Y")
     month = previous_date.strftime("%m")
     day = previous_date.strftime("%d").zfill(2)  # Garantir deux chiffres pour le jour

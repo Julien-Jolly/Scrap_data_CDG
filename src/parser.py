@@ -172,30 +172,38 @@ def parse_file(file_path, separator=None, page=0, selected_columns=None):
     ext = os.path.splitext(file_path)[1].lower()
 
     if ext == ".json":
-        with open(file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        if isinstance(data, list):
-            if data and isinstance(data[0], dict):
-                headers = list(data[0].keys())
-                rows = [list(item.values()) for item in data]
-                return [headers] + rows
-        elif isinstance(data, dict):
-            return [[k, str(v)] for k, v in data.items()]
-        return []
-    elif ext == ".csv":
-        if separator is None:
+        try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                try:
-                    dialect = csv.Sniffer().sniff(f.read(1024))
-                    separator = dialect.delimiter
-                except csv.Error:
-                    separator = ';'
-        raw_data = []
-        with open(file_path, 'r', encoding='utf-8') as f:
-            reader = csv.reader(f, delimiter=separator)
-            for row in reader:
-                raw_data.append([cell.strip() for cell in row])
-        return raw_data
+                data = json.load(f)
+            if isinstance(data, list):
+                if data and isinstance(data[0], dict):
+                    headers = list(data[0].keys())
+                    rows = [list(item.values()) for item in data]
+                    return [headers] + rows
+            elif isinstance(data, dict):
+                return [[k, str(v)] for k, v in data.items()]
+            return []
+        except Exception as e:
+            logger.error(f"Erreur lors du parsing JSON {file_path}: {e}")
+            return []
+    elif ext == ".csv":
+        try:
+            if separator is None:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    try:
+                        dialect = csv.Sniffer().sniff(f.read(1024))
+                        separator = dialect.delimiter
+                    except csv.Error:
+                        separator = ';'
+            raw_data = []
+            with open(file_path, 'r', encoding='utf-8') as f:
+                reader = csv.reader(f, delimiter=separator)
+                for row in reader:
+                    raw_data.append([cell.strip() for cell in row])
+            return raw_data
+        except Exception as e:
+            logger.error(f"Erreur lors du parsing CSV {file_path}: {e}")
+            return []
     elif ext == ".pdf":
         try:
             # Essayer tabula avec stream=True pour les tableaux sans bordures verticales
@@ -204,7 +212,6 @@ def parse_file(file_path, separator=None, page=0, selected_columns=None):
             if tables and not tables[0].empty:
                 df = tables[0].astype(str)
                 result = [[x for x in row if x != 'nan'] for row in df.values]
-                # Assouplir le filtrage pour inclure les lignes avec des cellules vides
                 result = [row for row in result if len(row) > 0]
                 logger.debug(f"Tableau extrait avec tabula stream=True: {result}")
                 return result
@@ -240,15 +247,11 @@ def parse_file(file_path, separator=None, page=0, selected_columns=None):
                 def parse_text_to_table(text):
                     lines = text.splitlines()
                     rows = []
-                    # Filtrer les lignes pertinentes (exclure les titres comme "OBJET DE L'AVIS")
                     table_lines = [line for line in lines if
                                    line.strip() and not line.startswith(('-OBJET', '-CARACTÉRISTIQUES'))]
-                    # Détecter les colonnes manuellement en utilisant un seuil d'espacement
                     for line in table_lines:
-                        # Remplacer plusieurs espaces par un séparateur unique
                         line = re.sub(r'\s{2,}', '  ', line.strip())
-                        # Séparer en deux colonnes (basé sur l'espacement)
-                        parts = line.split('  ', 1)  # Séparer sur deux espaces
+                        parts = line.split('  ', 1)
                         if len(parts) == 2:
                             rows.append([parts[0].strip(), parts[1].strip()])
                     return rows
@@ -260,52 +263,54 @@ def parse_file(file_path, separator=None, page=0, selected_columns=None):
             logger.error(f"Erreur lors du parsing PDF {file_path}: {e}")
             return []
     elif ext in [".xls", ".xlsx"]:
-        df = pd.read_excel(file_path)
-        return [df.columns.tolist()] + df.astype(str).values.tolist()
+        try:
+            df = pd.read_excel(file_path)
+            return [df.columns.tolist()] + df.astype(str).values.tolist()
+        except Exception as e:
+            logger.error(f"Erreur lors du parsing Excel {file_path}: {e}")
+            return []
     elif ext == ".html":
         return parse_html_table(file_path, selected_columns)
 
+    logger.error(f"Extension non supportée pour {file_path}: {ext}")
     return []
 
 
-def extract_data(raw_data, title_range=None, data_range=None, ignore_titles=False):
-    """Extrait les titres et données selon les plages définies."""
+def extract_data(raw_data, title_row=0, title_col=0, data_col=0, data_row_start=1, data_row_end=10,
+                 ignore_titles=False):
+    """Extrait les titres et données selon les paramètres d'une combinaison."""
     if not raw_data:
         logger.debug("raw_data est vide.")
         return [], []
 
-    logger.debug(f"raw_data avant extraction: {raw_data}")
-    logger.debug(f"title_range: {title_range}, data_range: {data_range}, ignore_titles: {ignore_titles}")
+    logger.debug(f"raw_data avant extraction: {raw_data[:2] if raw_data else []}")
+    logger.debug(f"Paramètres: title_row={title_row}, title_col={title_col}, data_col={data_col}, "
+                 f"data_row_start={data_row_start}, data_row_end={data_row_end}, ignore_titles={ignore_titles}")
 
     # Déterminer le nombre maximum de colonnes dans raw_data
     max_cols = max(len(row) for row in raw_data) if raw_data else 0
-    logger.debug(f"Nombre maximum de colonnes dans raw_data: {max_cols}")
+    max_rows = len(raw_data)
+    logger.debug(f"Dimensions de raw_data: {max_rows} lignes, {max_cols} colonnes")
 
-    # Ajuster les lignes pour qu'elles aient toutes le même nombre de colonnes
-    adjusted_raw_data = []
-    for row in raw_data:
-        if len(row) < max_cols:
-            row = row + [""] * (max_cols - len(row))
-        adjusted_raw_data.append(row)
-    logger.debug(f"raw_data ajusté: {adjusted_raw_data}")
-
-    if title_range and not ignore_titles:
-        titles = []
-        for row in adjusted_raw_data[title_range[0]:title_range[1] + 1]:
-            row_titles = row[title_range[2]:title_range[3] + 1]
-            if not titles:
-                titles = row_titles
-            else:
-                titles = [f"{t} {r}".strip() if r and t else t or r for t, r in zip(titles, row_titles)]
+    # Extraire le titre
+    titles = []
+    if not ignore_titles:
+        if title_row < max_rows and title_col < max_cols:
+            titles = [raw_data[title_row][title_col]]
+        else:
+            logger.error(f"Titre non trouvé à la ligne {title_row}, colonne {title_col}")
+            return [], []
     else:
-        titles = adjusted_raw_data[0] if adjusted_raw_data and not ignore_titles else []
+        titles = [f"Titre {data_col + 1}"]
     logger.debug(f"Titres extraits: {titles}")
 
-    data_start = data_range[0] if data_range else 1
-    data_end = data_range[1] + 1 if data_range else len(adjusted_raw_data)
-    data = [row[title_range[2]:title_range[3] + 1] for row in
-            adjusted_raw_data[data_start:data_end]] if title_range and data_range else adjusted_raw_data[
-                                                                                       data_start:] if adjusted_raw_data else []
+    # Extraire les données
+    data = []
+    for row in range(data_row_start, min(data_row_end + 1, max_rows)):
+        if row < max_rows and data_col < max_cols:
+            data.append([raw_data[row][data_col]])
+        else:
+            logger.warning(f"Données ignorées à la ligne {row}, colonne {data_col}: hors limites")
     logger.debug(f"Données extraites: {data}")
 
     return titles, data
@@ -314,39 +319,46 @@ def extract_data(raw_data, title_range=None, data_range=None, ignore_titles=Fals
 def load_settings():
     """Charge les paramètres sauvegardés."""
     if os.path.exists(SETTINGS_FILE):
-        with open(SETTINGS_FILE, "r") as f:
-            return json.load(f)
+        try:
+            with open(SETTINGS_FILE, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Erreur lors du chargement de {SETTINGS_FILE}: {e}")
+            return {}
     return {}
 
 
 def save_settings(settings):
     """Sauvegarde les paramètres."""
-    with open(SETTINGS_FILE, "w") as f:
-        json.dump(settings, f, indent=4)
+    try:
+        with open(SETTINGS_FILE, 'w') as f:
+            json.dump(settings, f, indent=4)
+    except Exception as e:
+        logger.error(f"Erreur lors de la sauvegarde de {SETTINGS_FILE}: {e}")
+        raise
 
 
 def get_source_settings(source):
     """Retourne les paramètres d’une source spécifique."""
     settings = load_settings()
     return settings.get(source, {
-        "separator": ";",
-        "page": 0,
-        "title_range": [0, 0, 0, 5],
-        "data_range": [1, 10],
-        "selected_table": None,
-        "ignore_titles": False
+        "tables": {}
     })
 
 
-def update_source_settings(source, separator, page, title_range, data_range, selected_table=None, ignore_titles=False):
-    """Met à jour les paramètres d’une source."""
-    settings = load_settings()
-    settings[source] = {
-        "separator": separator,
-        "page": page,
-        "title_range": title_range,
-        "data_range": data_range,
-        "selected_table": selected_table,
-        "ignore_titles": ignore_titles
-    }
-    save_settings(settings)
+def update_source_settings(source, settings):
+    """Met à jour les paramètres d’une source, en préservant les paramètres des autres tableaux."""
+    try:
+        all_settings = load_settings()
+        source_settings = all_settings.get(source, {"tables": {}})
+
+        # Fusionner les nouveaux paramètres avec les existants
+        new_table_settings = settings.get("tables", {})
+        source_settings["tables"].update(new_table_settings)
+
+        all_settings[source] = source_settings
+        save_settings(all_settings)
+        logger.debug(f"Paramètres mis à jour pour {source}: {source_settings}")
+    except Exception as e:
+        logger.error(f"Erreur lors de la mise à jour des paramètres pour {source}: {e}")
+        raise

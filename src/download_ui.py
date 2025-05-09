@@ -8,7 +8,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from src.downloader import download_files, simple_dl, driver_dl, scrape_html_table_dl
 from src.utils import load_excel_data
-from src.config import CHROMEDRIVER_PATH
+from webdriver_manager.chrome import ChromeDriverManager
 
 def run_download_with_status(sources, status_container, status_queue, report_container, retry=False):
     """Exécute le téléchargement et met à jour l'interface avec les statuts."""
@@ -62,7 +62,7 @@ def run_retry_download(sources, status_queue):
     options.add_argument("--headless")
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-blink-features=AutomationControlled")
-    service = Service(CHROMEDRIVER_PATH)
+    service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
 
     try:
