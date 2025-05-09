@@ -7,7 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urljoin
 import requests
 import pandas as pd
@@ -24,7 +24,7 @@ from bs4 import BeautifulSoup
 from webdriver_manager.chrome import ChromeDriverManager
 import random
 
-from src.config import SOURCE_FILE, DEST_PATH, TEMP_DOWNLOAD_DIR, year, month, day
+from src.config import SOURCE_FILE, DEST_PATH, TEMP_DOWNLOAD_DIR, get_download_dir
 
 # Configurer la journalisation sans StreamHandler
 logging.basicConfig(
@@ -41,19 +41,30 @@ os.makedirs(DEST_PATH, exist_ok=True)
 def sanitize_filename(name):
     return re.sub(r'[\\/*?:"<>|]', "", name)
 
-def simple_dl(row, columns):
-    # Code inchangé
-    final_url = row[columns[2]].format(year=year, month=month, day=day-1)
-    print(final_url)
+def simple_dl(row, columns, date_str=None):
+    """Télécharge un fichier à partir d'une URL directe."""
+    from datetime import datetime, timedelta
+
+    # Calculer la date de la veille
+    current_date = datetime.now()
+    previous_date = current_date - timedelta(days=2)
+    year = previous_date.strftime("%Y")
+    month = previous_date.strftime("%m")
+    day = previous_date.strftime("%d").zfill(2)  # Garantir deux chiffres pour le jour
+
+    final_url = row[columns[2]].format(year=year, month=month, day=day)
+    logger.debug(f"URL générée : {final_url}")
     logger.info(f'URL : {final_url}')
     nom_fichier = os.path.basename(final_url)
 
     prefix = sanitize_filename(row[columns[0]])
-    fichier_destination = os.path.join(DEST_PATH, f"{prefix} - {nom_fichier}")
+    # Utiliser le répertoire de la date spécifiée ou DEST_PATH par défaut
+    dest_dir = get_download_dir(date_str) if date_str else DEST_PATH
+    fichier_destination = os.path.join(dest_dir, f"{prefix} - {nom_fichier}")
     logger.info(f'Destination : {fichier_destination}')
 
     try:
-        os.makedirs(DEST_PATH, exist_ok=True)
+        os.makedirs(dest_dir, exist_ok=True)
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
         response = requests.get(final_url, headers=headers)
@@ -79,7 +90,6 @@ def simple_dl(row, columns):
         return False, str(e)
 
 def driver_dl(row, columns, driver):
-    # Code inchangé
     url = row[columns[2]]
     xpath = row[columns[3]]
 
@@ -225,7 +235,6 @@ def driver_dl(row, columns, driver):
         return False, str(e)
 
 def scrape_html_table_dl(row, columns, driver):
-    # Code inchangé
     url = row[columns[2]]
     if not url or not isinstance(url, str) or str(url).strip().lower() in ('nan', ''):
         logger.error(f"URL invalide pour la source {row[columns[0]]}: {url}")
@@ -266,7 +275,6 @@ def scrape_html_table_dl(row, columns, driver):
     except Exception as e:
         logger.error(f"Erreur inattendue : {type(e).__name__} - {str(e)}")
         return False, str(e)
-
 
 def scrape_html_table_with_captcha_dl(row, columns):
     """Téléchargement des tableaux HTML pour le type 4, avec authentification et gestion du CAPTCHA."""
@@ -458,7 +466,6 @@ def scrape_html_table_with_captcha_dl(row, columns):
         finally:
             browser.close()
 
-
 def scrape_articles_dl(row, columns):
     """Téléchargement des articles entiers du jour pour le type 5."""
     url = row[columns[2]]
@@ -600,10 +607,7 @@ def scrape_articles_dl(row, columns):
         if driver is not None:
             driver.quit()
 
-
-
 def get_sources():
-    # Code inchangé
     try:
         df = pd.read_excel(SOURCE_FILE, sheet_name="Source sans doub", dtype=str, engine="openpyxl").fillna('')
         sources = df[df.columns[0]].tolist()
@@ -643,7 +647,7 @@ def download_files(sources, status_queue):
             source = row[columns[0]]
             extraction_type = row[columns[1]]
             try:
-                if extraction_type not in ["1", "2", "3"]:  # Ajout du type 5
+                if extraction_type not in ["1", "2", "3"]:
                     status_queue.put((source, "🚫 Ignoré"))
                     logger.warning(f"Type d'extraction invalide pour {source} : {extraction_type}")
                     errors.append((source, f"Type d'extraction invalide : {extraction_type}"))
@@ -661,11 +665,6 @@ def download_files(sources, status_queue):
                         if driver is None:
                             driver = webdriver.Chrome(service=service, options=options)
                         success, error = scrape_html_table_dl(row, columns, driver)
-                    # elif extraction_type == "4":
-                    #     success, error = scrape_html_table_with_captcha_dl(row, columns)
-                    # elif extraction_type == "5":
-                    #     success, error = scrape_articles_dl(row, columns)  # Appel pour type 5
-
                     if success:
                         successes += 1
                         status_queue.put((source, "✅ Succès"))

@@ -1,11 +1,18 @@
-.idea/*
-.venv/*
+.idea/
+.venv/
 temp.py
-Downloads/*
+Downloads/
+src/__pycache__/
+__pycache__/
 database.db
 *.log
 matrice_sources.xlsx
-logs/*
+logs/
 *.zip
 ~$matrice_sources - Copie.xlsx
 matrice_sources - Copie.xlsx
+.idea/workspace.xml
+.gitignore
+exports/
+sql_scripts/
+*.json

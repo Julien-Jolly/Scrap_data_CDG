@@ -1,8 +1,8 @@
-# Scrap_data_CDG - Application de Scraping et d'Extraction de Données
+# Scrap_process_integrate - Application de Scraping et d'Extraction de Données
 
 ## Description
 
-`Scrap_data_CDG` est une application Python développée avec **Streamlit** pour automatiser le téléchargement, l'extraction, et le traitement de données à partir de sources variées (web, fichiers PDF, Excel, CSV, JSON, HTML). Elle est conçue pour gérer les données financières et les KPI de CDG Capital Gestion, en s'appuyant sur un fichier Excel de configuration (`Matrice KPI_Gestion_V2_03_01.xlsx`). L'application propose trois pages principales :
+`Scrap_process_integrate` est une application Python développée avec **Streamlit** pour automatiser le téléchargement, l'extraction, et le traitement de données à partir de sources variées (web, fichiers PDF, Excel, CSV, JSON, HTML). Elle est conçue pour gérer les données financières et les KPI de CDG Capital Gestion, en s'appuyant sur un fichier Excel de configuration (`Matrice KPI_Gestion_V2_03_01.xlsx`). L'application propose trois pages principales :
 
 1. **Gestion des Sources** : Permet de visualiser, modifier, et télécharger des fichiers à partir de sources configurées.
 2. **Analyse et Extraction des Données** : Offre une interface pour parser et extraire des données à partir des fichiers téléchargés, avec paramétrage des plages de titres et de données.
@@ -12,7 +12,7 @@ Les fichiers téléchargés sont organisés dans des dossiers datés (`Downloads
 
 ## Prérequis
 
-- **Python 3.11.9+**
+- **Python 3.13.**
 - **Google Chrome** (pour le téléchargement via Selenium)
 - **Chromedriver** (compatible avec votre version de Chrome)
 - Système d'exploitation : Windows (testé sur Windows 10/11)
@@ -34,20 +34,35 @@ Les bibliothèques nécessaires sont listées dans `requirements.txt`. Les princ
 1. **Cloner le dépôt** :
    ```bash
    git clone <URL_DU_DÉPÔT>
-   cd Scrap_data_CDG
+   cd Scrap_process_integrate
 
 Créer un environnement virtuel (recommandé) :
 
-python -m venv venv
-.\venv\Scripts\activate  # Windows
+python -m venv .venv
+
+.venv\Scripts\activate  
+
 
 Installer les dépendances :
 
 pip install -r requirements.txt
 
 
+Lancer interface streamlit :
+streamlit run main.py
+
+lancer commandes cli :
+
+python cli.py download_and_process --db_path database.db
+
+ou
+
+python cli.py process_only --db_path database.db
+
+
+
 Configurer le fichier Excel :
-Assurez-vous que le fichier matrice_source.xlsx est disponible à l'emplacement "../Scrap_data_CDG/matrice sources.xlsx"
+Assurez-vous que le fichier matrice_source.xlsx est disponible à l'emplacement "../Scrap_process_integrate/matrice sources.xlsx"
 
 Ce fichier doit contenir les colonnes suivantes :
 Source (identifiant unique)
@@ -68,7 +83,7 @@ Nom de la source (colonne 7)
 
 Structure du Projet
 
-/Scrap_data_cdg /
+/Scrap_process_integrate /
 ├── /.venv/
 ├── /Downloads/
 ├── /src/
@@ -163,7 +178,7 @@ Sources non paramétrées : Si une source manque de paramètres dans source_sett
 
 Données de la veille : Les vérifications de types et de nature nécessitent des données pour la veille dans la base SQLite. Si aucune donnée n'est disponible, un message informatif est affiché.
 
-Fichier source_settings.json : Doit être à la racine du projet (Scrap_data_CDG/) pour éviter les erreurs de chemin.
+Fichier source_settings.json : Doit être à la racine du projet (Scrap_process_integrate/) pour éviter les erreurs de chemin.
 
 Dépendances
 Python 3.8+
