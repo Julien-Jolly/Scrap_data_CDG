@@ -25,6 +25,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 import random
 
 from src.config import SOURCE_FILE, DEST_PATH, TEMP_DOWNLOAD_DIR, get_download_dir
+from src.get_historical_financial_data import api_historical_data_dl
+from src.utils import sanitize_filename  # Importation ajoutée
 
 # Configurer la journalisation sans StreamHandler
 logging.basicConfig(
@@ -37,9 +39,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 os.makedirs(DEST_PATH, exist_ok=True)
-
-def sanitize_filename(name):
-    return re.sub(r'[\\/*?:"<>|]', "", name)
 
 def simple_dl(row, columns, date_str=None):
     """Télécharge un fichier à partir d'une URL directe."""
@@ -647,7 +646,7 @@ def download_files(sources, status_queue):
             source = row[columns[0]]
             extraction_type = row[columns[1]]
             try:
-                if extraction_type not in ["1", "2", "3"]:
+                if extraction_type not in ["1", "2", "3", "4", "5", "6"]:  # Ajout du type "6"
                     status_queue.put((source, "🚫 Ignoré"))
                     logger.warning(f"Type d'extraction invalide pour {source} : {extraction_type}")
                     errors.append((source, f"Type d'extraction invalide : {extraction_type}"))
@@ -665,6 +664,12 @@ def download_files(sources, status_queue):
                         if driver is None:
                             driver = webdriver.Chrome(service=service, options=options)
                         success, error = scrape_html_table_dl(row, columns, driver)
+                    elif extraction_type == "4":
+                        success, error = scrape_html_table_with_captcha_dl(row, columns)
+                    elif extraction_type == "5":
+                        success, error = scrape_articles_dl(row, columns)
+                    elif extraction_type == "6":
+                        success, error = api_historical_data_dl(row, columns)
                     if success:
                         successes += 1
                         status_queue.put((source, "✅ Succès"))

@@ -6,9 +6,11 @@ import time
 import concurrent.futures
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from src.downloader import download_files, simple_dl, driver_dl, scrape_html_table_dl
+from src.downloader import download_files, simple_dl, driver_dl, scrape_html_table_dl, scrape_html_table_with_captcha_dl, scrape_articles_dl, api_historical_data_dl
 from src.utils import load_excel_data
 from webdriver_manager.chrome import ChromeDriverManager
+
+
 
 def run_download_with_status(sources, status_container, status_queue, report_container, retry=False):
     """Exécute le téléchargement et met à jour l'interface avec les statuts."""
