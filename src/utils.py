@@ -10,6 +10,11 @@ import sqlite3
 
 logger = logging.getLogger(__name__)
 
+
+def sanitize_filename(name):
+    """Sanitize a string to be used as a filename by removing invalid characters."""
+    return re.sub(r'[\\/*?:"<>|]', "", name)
+
 def load_excel_data():
     """Charge les données depuis le fichier Excel."""
     df = pd.read_excel(SOURCE_FILE, sheet_name="Source sans doub", dtype=str)
