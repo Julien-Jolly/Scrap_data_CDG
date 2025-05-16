@@ -4,17 +4,13 @@ import pandas as pd
 import os
 import re
 from datetime import datetime
-from src.parser import get_downloaded_files, parse_file, extract_data, get_source_settings, update_source_settings, \
-    load_settings
+from src.parser import get_downloaded_files, parse_file, extract_data_from_combinations, get_source_settings, update_source_settings, load_settings
 from src.utils import load_excel_data, make_unique_titles
-from src.config import get_download_dir
+from src.config import get_download_dir, configure_logging
 import json
-import logging
 
 # Configurer le logging
-logging.basicConfig(level=logging.DEBUG, format='%(levelname)s:%(name)s:%(message)s', force=True)
-logger = logging.getLogger(__name__)
-
+logger, summary_logger = configure_logging("extract_ui")
 
 def extract_section():
     """Affiche la section 'Analyse et Extraction des Données' avec sélection de date et tableau des sources non paramétrées."""

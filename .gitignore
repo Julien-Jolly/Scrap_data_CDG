@@ -16,3 +16,5 @@ matrice_sources - Copie.xlsx
 exports/
 sql_scripts/
 *.json
+bkam_exchange_rates/
+failed_downloads/
