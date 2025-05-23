@@ -18,3 +18,6 @@ sql_scripts/
 *.json
 bkam_exchange_rates/
 failed_downloads/
+failed_downloads_taux/
+bkam_taux_csvs/
+
